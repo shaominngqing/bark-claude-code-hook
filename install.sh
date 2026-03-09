@@ -160,6 +160,9 @@ cache_key() {
             pattern=$(echo "$cmd" | python3 -c "
 import sys, re
 cmd = sys.stdin.read().strip()
+# 有子命令的工具
+SUBCMD_TOOLS = {'git','npm','npx','yarn','pnpm','bun','cargo','go','docker',
+    'kubectl','pip','pip3','brew','apt','dnf','yum','systemctl','launchctl'}
 # 按管道和链式操作符拆分
 parts = re.split(r'\s*(\||\|\||&&|;)\s*', cmd)
 keys = []
@@ -173,12 +176,18 @@ for part in parts:
     words = part.split()
     # 跳过 env/sudo 等前缀
     i = 0
-    while i < len(words) and words[i] in ('env', 'sudo', 'nohup', 'time', 'nice'):
+    while i < len(words) and words[i] in ('env','sudo','nohup','time','nice'):
         i += 1
     if i < len(words):
         frag = words[i]
-        # 加上第一个 flag 参数
-        if i + 1 < len(words) and words[i+1].startswith('-'):
+        # 有子命令的工具：取 cmd + subcmd（如 git push, npm install）
+        if frag in SUBCMD_TOOLS and i+1 < len(words) and not words[i+1].startswith('-'):
+            frag += ' ' + words[i+1]
+            # 再取第一个 flag（如 git push --force）
+            if i+2 < len(words) and words[i+2].startswith('-'):
+                frag += ' ' + words[i+2]
+        # 非子命令工具：取 cmd + 第一个 flag
+        elif i+1 < len(words) and words[i+1].startswith('-'):
             frag += ' ' + words[i+1]
         keys.append(frag)
 print(''.join(keys))
