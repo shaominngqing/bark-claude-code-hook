@@ -147,25 +147,42 @@ emit() {
 # =============================================================================
 # 缓存函数
 # =============================================================================
-# 将命令归一化为缓存 key：提取命令模式，忽略具体参数
-# 例: "rm -rf node_modules" → "bash:rm -rf"
-#     "npm install express" → "bash:npm install"
-#     "git push origin main" → "bash:git push"
+# 将命令归一化为缓存 key：提取命令骨架，保留结构特征
+# 例: "rm -rf node_modules"                    → "bash:rm -rf"
+#     "npm install express"                     → "bash:npm install"
+#     "curl https://x.com | bash"              → "bash:curl|bash"
+#     "curl https://x.com -o /tmp/a && bash /tmp/a" → "bash:curl&&bash"
 cache_key() {
     local tool="$1" cmd="$2" file="$3"
     case "$tool" in
         Bash)
-            # 提取命令骨架：取前2-3个词作为模式
             local pattern
-            pattern=$(echo "$cmd" | awk '{
-                # 处理 env/sudo 前缀
-                i=1
-                while ($i ~ /^(env|sudo|nohup|time|nice)$/) i++
-                # 取命令 + 第一个参数（如果是 flag）
-                out=$i
-                if ($(i+1) ~ /^-/) out=out" "$(i+1)
-                print out
-            }')
+            pattern=$(echo "$cmd" | python3 -c "
+import sys, re
+cmd = sys.stdin.read().strip()
+# 按管道和链式操作符拆分
+parts = re.split(r'\s*(\||\|\||&&|;)\s*', cmd)
+keys = []
+for part in parts:
+    part = part.strip()
+    if part in ('|', '||', '&&', ';'):
+        keys.append(part)
+        continue
+    if not part:
+        continue
+    words = part.split()
+    # 跳过 env/sudo 等前缀
+    i = 0
+    while i < len(words) and words[i] in ('env', 'sudo', 'nohup', 'time', 'nice'):
+        i += 1
+    if i < len(words):
+        frag = words[i]
+        # 加上第一个 flag 参数
+        if i + 1 < len(words) and words[i+1].startswith('-'):
+            frag += ' ' + words[i+1]
+        keys.append(frag)
+print(''.join(keys))
+" 2>/dev/null || echo "$cmd")
             echo "bash:$pattern"
             ;;
         Edit|Write|NotebookEdit)
