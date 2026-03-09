@@ -579,14 +579,16 @@ cat > "$HOOKS_DIR/risk-guard-uninstall.sh" << 'UNINSTALL_EOF'
 #!/bin/bash
 echo "正在卸载 Risk Guard..."
 bash "$HOME/.claude/hooks/risk-guard-ctl.sh" off 2>/dev/null
-rm -rf "$HOME/.claude/hooks/risk-guard.sh" "$HOME/.claude/hooks/risk-guard-ctl.sh"
-rm -rf "$HOME/.claude/hooks/risk-guard-uninstall.sh" "$HOME/.claude/hooks/install-risk-guard.sh"
-rm -rf "$HOME/.claude/hooks/cache" "$HOME/.claude/hooks/risk-guard.log"
 for cmd in risk-guard risk-guard-uninstall; do
     for dir in /usr/local/bin /opt/homebrew/bin; do
         [ -L "$dir/$cmd" ] && rm -f "$dir/$cmd"
     done
 done
+rm -rf "$HOME/.claude/hooks/cache"
+rm -f "$HOME/.claude/hooks/risk-guard.sh" "$HOME/.claude/hooks/risk-guard-ctl.sh"
+rm -f "$HOME/.claude/hooks/install-risk-guard.sh"
+rm -f "$HOME/.claude/hooks/risk-guard.log"
+rm -f "$HOME/.claude/hooks/risk-guard-uninstall.sh"
 echo "✅ Risk Guard 已完全卸载"
 UNINSTALL_EOF
 chmod +x "$HOOKS_DIR/risk-guard-uninstall.sh"
