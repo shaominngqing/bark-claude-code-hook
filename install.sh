@@ -570,6 +570,20 @@ log_cmd() {
     esac
 }
 
+uninstall_cmd() {
+    echo "正在卸载 Risk Guard..."
+    disable_hook 2>/dev/null
+    for dir in /usr/local/bin /opt/homebrew/bin; do
+        [ -L "$dir/risk-guard" ] && rm -f "$dir/risk-guard"
+    done
+    rm -rf "$CACHE_DIR"
+    rm -f "$HOOK_SCRIPT" "$LOG_FILE"
+    # 最后删除自身
+    local self="$HOME/.claude/hooks/risk-guard-ctl.sh"
+    echo "✅ Risk Guard 已完全卸载"
+    rm -f "$self"
+}
+
 usage() {
     echo "Risk Guard — Claude Code AI 风险守卫"
     echo ""
@@ -582,6 +596,7 @@ usage() {
     echo "  test <cmd>        测试命令风险等级"
     echo "  cache [clear]     查看/清空缓存"
     echo "  log [N|clear]     查看最近 N 条日志 / 清空日志"
+    echo "  uninstall         完全卸载"
     echo "  help              显示此帮助"
 }
 
@@ -593,33 +608,13 @@ case "${1:-status}" in
     test)           shift; test_command "$@" ;;
     cache)          shift; cache_cmd "$@" ;;
     log|logs)       shift; log_cmd "$@" ;;
+    uninstall)      uninstall_cmd ;;
     help|-h|--help) usage ;;
     *)              echo "未知命令: $1"; usage; exit 1 ;;
 esac
 CTL__EOF
 chmod +x "$CTL_SCRIPT"
 ok "控制面板      risk-guard-ctl.sh"
-
-# ═══ 卸载脚本 ═══
-cat > "$HOOKS_DIR/risk-guard-uninstall.sh" << 'UNINSTALL_EOF'
-#!/bin/bash
-echo "正在卸载 Risk Guard..."
-bash "$HOME/.claude/hooks/risk-guard-ctl.sh" off 2>/dev/null
-for cmd in risk-guard risk-guard-uninstall; do
-    for dir in /usr/local/bin /opt/homebrew/bin; do
-        [ -L "$dir/$cmd" ] && rm -f "$dir/$cmd"
-    done
-done
-rm -rf "$HOME/.claude/hooks/cache"
-rm -f "$HOME/.claude/hooks/risk-guard.sh" "$HOME/.claude/hooks/risk-guard-ctl.sh"
-rm -f "$HOME/.claude/hooks/install-risk-guard.sh"
-rm -f "$HOME/.claude/hooks/risk-guard.log"
-rm -f "$HOME/.claude/hooks/risk-guard-uninstall.sh"
-echo "✅ Risk Guard 已完全卸载"
-UNINSTALL_EOF
-chmod +x "$HOOKS_DIR/risk-guard-uninstall.sh"
-
-ok "卸载工具      risk-guard-uninstall.sh"
 
 # ═══ 全局命令 ═══
 step "注册全局命令"
@@ -632,7 +627,6 @@ fi
 
 if [ -n "$BIN_DIR" ]; then
     ln -sf "$CTL_SCRIPT" "$BIN_DIR/risk-guard" 2>/dev/null && ok "risk-guard → $BIN_DIR/" || warn "请手动: ln -s $CTL_SCRIPT /usr/local/bin/risk-guard"
-    ln -sf "$HOOKS_DIR/risk-guard-uninstall.sh" "$BIN_DIR/risk-guard-uninstall" 2>/dev/null && ok "risk-guard-uninstall → $BIN_DIR/"
 else
     warn "请手动: alias risk-guard='$CTL_SCRIPT'"
 fi
@@ -674,12 +668,7 @@ echo -e "    ${DIM}高风险  ${NC}  rm -rf / force push ... ${RED}━━▸${NC
 echo ""
 echo -e "  ${BOLD}常用命令${NC}"
 echo ""
-echo -e "    ${CYAN}risk-guard${NC} ${DIM}status${NC}         查看状态"
-echo -e "    ${CYAN}risk-guard${NC} ${DIM}on / off${NC}       启用 / 禁用"
-echo -e "    ${CYAN}risk-guard${NC} ${DIM}test <cmd>${NC}     测试命令风险"
-echo -e "    ${CYAN}risk-guard${NC} ${DIM}cache [clear]${NC}  缓存管理"
-echo -e "    ${CYAN}risk-guard${NC} ${DIM}log [N|clear]${NC}  日志查看"
-echo -e "    ${CYAN}risk-guard-uninstall${NC}       完全卸载"
+echo -e "    ${CYAN}risk-guard${NC} ${DIM}help${NC}           查看所有命令"
 echo ""
 echo -e "  ${YELLOW}▸ 新开的 Claude Code 会话自动生效${NC}"
 echo ""
