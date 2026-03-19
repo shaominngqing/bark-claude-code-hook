@@ -37,7 +37,7 @@ command -v claude  >/dev/null 2>&1 && ok "claude CLI" || warn "未检测到 clau
 
 step "准备目录"
 mkdir -p "$HOOKS_DIR"
-[ ! -f "$SETTINGS" ] && echo '{}' > "$SETTINGS"
+([ ! -f "$SETTINGS" ] || [ ! -s "$SETTINGS" ]) && echo '{}' > "$SETTINGS"
 ok "$HOOKS_DIR"
 
 # ═══ 写入 risk-guard.sh ═══
@@ -394,13 +394,14 @@ HOOK_SCRIPT="$HOME/.claude/hooks/risk-guard.sh"
 CACHE_DIR="$HOME/.claude/hooks/cache"
 LOG_FILE="$HOME/.claude/hooks/risk-guard.log"
 
-[ ! -f "$SETTINGS" ] && echo '{}' > "$SETTINGS"
+([ ! -f "$SETTINGS" ] || [ ! -s "$SETTINGS" ]) && echo '{}' > "$SETTINGS"
 
 has_hook() {
     python3 -c "
 import json
 with open('$SETTINGS') as f:
-    d = json.load(f)
+    content = f.read().strip()
+    d = json.loads(content) if content else {}
 hooks = d.get('hooks', {}).get('PreToolUse', [])
 for h in hooks:
     for cmd in h.get('hooks', []):
@@ -413,7 +414,8 @@ enable_hook() {
     python3 -c "
 import json
 with open('$SETTINGS') as f:
-    d = json.load(f)
+    content = f.read().strip()
+    d = json.loads(content) if content else {}
 hook_entry = {'matcher': '*', 'hooks': [{'type': 'command', 'command': '$HOOK_SCRIPT', 'timeout': 30}]}
 if 'hooks' not in d:
     d['hooks'] = {}
@@ -433,7 +435,8 @@ disable_hook() {
     python3 -c "
 import json
 with open('$SETTINGS') as f:
-    d = json.load(f)
+    content = f.read().strip()
+    d = json.loads(content) if content else {}
 pre = d.get('hooks', {}).get('PreToolUse', [])
 new_pre, found = [], False
 for h in pre:
@@ -637,7 +640,8 @@ python3 -c "
 import json, os
 p = os.path.expanduser('$SETTINGS')
 with open(p) as f:
-    d = json.load(f)
+    content = f.read().strip()
+    d = json.loads(content) if content else {}
 hook_entry = {'matcher': '*', 'hooks': [{'type': 'command', 'command': '$HOOK_SCRIPT', 'timeout': 30}]}
 if 'hooks' not in d:
     d['hooks'] = {}
