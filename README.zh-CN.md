@@ -48,6 +48,8 @@ risk-guard status         # 查看状态
 risk-guard on / off       # 启用 / 禁用
 risk-guard toggle         # 切换开关
 risk-guard test <cmd>     # 测试命令风险等级
+risk-guard test -v <cmd>  # 详细模式，显示评估过程
+risk-guard test -n <cmd>  # 模拟运行，仅展示不拦截
 risk-guard cache [clear]  # 查看 / 清空缓存
 risk-guard log [N|clear]  # 查看 / 清空日志
 risk-guard stats          # 查看统计数据

@@ -117,6 +117,11 @@ mkdir -p "$CACHE_DIR"
 # i18n
 _is_zh() { [[ "${LANG:-}${LC_ALL:-}" =~ zh ]]; }
 
+# verbose / dry-run (controlled via env vars)
+_VERBOSE="${RISK_GUARD_VERBOSE:-0}"
+_DRY_RUN="${RISK_GUARD_DRY_RUN:-0}"
+_dbg() { [ "$_VERBOSE" = "1" ] && echo -e "\033[2m  [debug] $*\033[0m" >&2 || true; }
+
 INPUT=$(cat)
 
 TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
@@ -170,21 +175,38 @@ log_entry() {
 emit() {
     local level="$1" reason="$2" source="${3:-}"
     local level_tag detail
+
+    # dry-run: override high risk to allow
+    if [ "$_DRY_RUN" = "1" ] && [ "$level" = "2" ]; then
+        _dbg "dry-run: overriding level 2 → allow"
+        reason="[dry-run] $reason"
+    fi
+
     if _is_zh; then
         case "$level" in
             0) level_tag="LOW " ; output_decision "allow" "[低风险] $reason" ;;
             1) level_tag="MED " ; notify "⚠️ Claude Code" "已自动放行" "$reason"
                output_decision "allow" "[中风险] $reason" ;;
-            2) level_tag="HIGH" ; notify "🚨 Claude Code" "需要确认" "$reason" "Funk"
-               output_decision "ask" "[高风险] $reason" ;;
+            2) level_tag="HIGH" ;
+               if [ "$_DRY_RUN" = "1" ]; then
+                   output_decision "allow" "[高风险-dry-run] $reason"
+               else
+                   notify "🚨 Claude Code" "需要确认" "$reason" "Funk"
+                   output_decision "ask" "[高风险] $reason"
+               fi ;;
         esac
     else
         case "$level" in
             0) level_tag="LOW " ; output_decision "allow" "[Low] $reason" ;;
             1) level_tag="MED " ; notify "⚠️ Claude Code" "Auto-allowed" "$reason"
                output_decision "allow" "[Medium] $reason" ;;
-            2) level_tag="HIGH" ; notify "🚨 Claude Code" "Confirmation needed" "$reason" "Funk"
-               output_decision "ask" "[High] $reason" ;;
+            2) level_tag="HIGH" ;
+               if [ "$_DRY_RUN" = "1" ]; then
+                   output_decision "allow" "[High-dry-run] $reason"
+               else
+                   notify "🚨 Claude Code" "Confirmation needed" "$reason" "Funk"
+                   output_decision "ask" "[High] $reason"
+               fi ;;
         esac
     fi
 
@@ -452,34 +474,47 @@ Operation: $description" 2>/dev/null)
 # 主逻辑
 # =============================================================================
 
+_dbg "tool=$TOOL_NAME command='${COMMAND:-}' file='${FILE_PATH:-}'"
+[ "$_DRY_RUN" = "1" ] && _dbg "dry-run mode: all decisions will be allow"
+
 # 第一层: 快速规则
 FAST_RESULT=$(fast_check) && {
     LEVEL=$(echo "$FAST_RESULT" | cut -d'|' -f1)
     REASON=$(echo "$FAST_RESULT" | cut -d'|' -f2-)
+    _dbg "layer=FAST level=$LEVEL reason='$REASON'"
     emit "$LEVEL" "$REASON" "FAST"
     exit 0
 }
+_dbg "layer=FAST miss"
 
 # 第 1.5 层: 用户自定义规则
 CUSTOM_RESULT=$(check_custom_rules) && {
     LEVEL=$(echo "$CUSTOM_RESULT" | cut -d'|' -f1)
     REASON=$(echo "$CUSTOM_RESULT" | cut -d'|' -f2-)
+    _dbg "layer=RULE level=$LEVEL reason='$REASON'"
     emit "$LEVEL" "$REASON" "RULE"
     exit 0
 }
+_dbg "layer=RULE miss"
 
 # 第二层: 缓存查询
-CACHE_RESULT=$(check_cache) && {
+CACHE_KEY=$(cache_key "$TOOL_NAME" "$COMMAND" "$FILE_PATH")
+_dbg "cache_key='$CACHE_KEY'"
+CACHE_RESULT=$(cache_get "$CACHE_KEY") && {
     LEVEL=$(echo "$CACHE_RESULT" | cut -d'|' -f1)
     REASON=$(echo "$CACHE_RESULT" | cut -d'|' -f2-)
+    _dbg "layer=CACHE level=$LEVEL reason='$REASON'"
     emit "$LEVEL" "$REASON (cached)" "CACHE"
     exit 0
 }
+_dbg "layer=CACHE miss"
 
 # 第三层: AI 评估
+_dbg "layer=AI calling claude..."
 AI_RESULT=$(ai_assess)
 LEVEL=$(echo "$AI_RESULT" | cut -d'|' -f1)
 REASON=$(echo "$AI_RESULT" | cut -d'|' -f2-)
+_dbg "layer=AI level=$LEVEL reason='$REASON'"
 emit "$LEVEL" "$REASON" "AI"
 HOOK__EOF
 chmod +x "$HOOK_SCRIPT"
@@ -603,8 +638,8 @@ _t() {
             log_suffix)    echo "条日志:" ;;
             uninstalling)  echo "正在卸载 Risk Guard..." ;;
             uninstalled)   echo "✅ Risk Guard 已完全卸载" ;;
-            test_usage)    echo "用法: risk-guard test <bash command>" ;;
-            test_example)  echo "示例: risk-guard test rm -rf node_modules" ;;
+            test_usage)    echo "用法: risk-guard test [--verbose] [--dry-run] <bash command>" ;;
+            test_example)  echo "示例: risk-guard test --verbose rm -rf node_modules" ;;
             help_title)    echo "Risk Guard — Claude Code AI 风险守卫" ;;
             cmd_status)    echo "  status            查看状态" ;;
             cmd_onoff)     echo "  on / off          启用 / 禁用" ;;
@@ -649,8 +684,8 @@ _t() {
             log_suffix)    echo "log entries:" ;;
             uninstalling)  echo "Uninstalling Risk Guard..." ;;
             uninstalled)   echo "✅ Risk Guard fully uninstalled" ;;
-            test_usage)    echo "Usage: risk-guard test <bash command>" ;;
-            test_example)  echo "Example: risk-guard test rm -rf node_modules" ;;
+            test_usage)    echo "Usage: risk-guard test [--verbose] [--dry-run] <bash command>" ;;
+            test_example)  echo "Example: risk-guard test --verbose rm -rf node_modules" ;;
             help_title)    echo "Risk Guard — AI Risk Assessment for Claude Code" ;;
             cmd_status)    echo "  status            Show status" ;;
             cmd_onoff)     echo "  on / off          Enable / disable" ;;
@@ -723,6 +758,16 @@ show_status() {
 }
 
 test_command() {
+    # Parse flags
+    local verbose=0 dry_run=0
+    while [[ "${1:-}" == --* ]]; do
+        case "$1" in
+            --verbose|-v) verbose=1; shift ;;
+            --dry-run|-n) dry_run=1; verbose=1; shift ;;
+            *) shift ;;
+        esac
+    done
+
     local cmd="$*"
     if [ -z "$cmd" ]; then
         _t test_usage
@@ -735,22 +780,30 @@ test_command() {
 
     local start end
     start=$(date +%s)
-    local result
-    result=$(echo "$payload" | env -u CLAUDECODE "$HOOK_SCRIPT" 2>/dev/null)
+    local debug_file
+    debug_file=$(mktemp)
+    local json_result
+    json_result=$(echo "$payload" | RISK_GUARD_VERBOSE="$verbose" RISK_GUARD_DRY_RUN="$dry_run" env -u CLAUDECODE "$HOOK_SCRIPT" 2>"$debug_file")
     end=$(date +%s)
 
     local elapsed="$((end - start))s"
 
+    # Show debug output if any
+    if [ -s "$debug_file" ]; then
+        cat "$debug_file"
+    fi
+    rm -f "$debug_file"
+
     local decision reason icon
-    decision=$(echo "$result" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
-    reason=$(echo "$result" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty' 2>/dev/null)
+    decision=$(echo "$json_result" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+    reason=$(echo "$json_result" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty' 2>/dev/null)
     if [ -n "$decision" ]; then
         case "$decision" in
-            allow) icon="✅" ;; ask) icon="🚨" ;; deny) icon="❌" ;; *) icon="?" ;;
+            allow) icon="${GREEN}◆${NC}" ;; ask) icon="${RED}◆${NC}" ;; deny) icon="${RED}✗${NC}" ;; *) icon="?" ;;
         esac
-        echo "$icon $decision  ($reason)  [$elapsed]"
+        echo -e "$icon $decision  ${DIM}($reason)${NC}  ${DIM}[$elapsed]${NC}"
     else
-        echo "⚠️  Parse error: ${result:0:100}"
+        echo -e "${RED}◆${NC} Parse error: ${json_result:0:100}"
     fi
 }
 

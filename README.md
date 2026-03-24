@@ -48,6 +48,8 @@ risk-guard status         # Show status
 risk-guard on / off       # Enable / disable
 risk-guard toggle         # Toggle on/off
 risk-guard test <cmd>     # Test a command's risk level
+risk-guard test -v <cmd>  # Test with verbose debug output
+risk-guard test -n <cmd>  # Dry-run: show assessment, always allow
 risk-guard cache [clear]  # View / clear cache
 risk-guard log [N|clear]  # View / clear logs
 risk-guard stats          # Show statistics dashboard
