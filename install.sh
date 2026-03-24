@@ -945,13 +945,13 @@ stats_cmd() {
 
     local total fast cache rule ai low med high
     total=$(wc -l < "$LOG_FILE" | tr -d ' ')
-    fast=$(grep -c '\[FAST\]' "$LOG_FILE" 2>/dev/null || echo 0)
-    cache=$(grep -c '\[CACHE\]' "$LOG_FILE" 2>/dev/null || echo 0)
-    rule=$(grep -c '\[RULE\]' "$LOG_FILE" 2>/dev/null || echo 0)
-    ai=$(grep -c '\[AI\]' "$LOG_FILE" 2>/dev/null || echo 0)
-    low=$(grep -c 'LOW ' "$LOG_FILE" 2>/dev/null || echo 0)
-    med=$(grep -c 'MED ' "$LOG_FILE" 2>/dev/null || echo 0)
-    high=$(grep -c 'HIGH' "$LOG_FILE" 2>/dev/null || echo 0)
+    fast=$(grep -c '\[FAST\]' "$LOG_FILE" 2>/dev/null || true); fast=${fast:-0}
+    cache=$(grep -c '\[CACHE\]' "$LOG_FILE" 2>/dev/null || true); cache=${cache:-0}
+    rule=$(grep -c '\[RULE\]' "$LOG_FILE" 2>/dev/null || true); rule=${rule:-0}
+    ai=$(grep -c '\[AI\]' "$LOG_FILE" 2>/dev/null || true); ai=${ai:-0}
+    low=$(grep -c 'LOW ' "$LOG_FILE" 2>/dev/null || true); low=${low:-0}
+    med=$(grep -c 'MED ' "$LOG_FILE" 2>/dev/null || true); med=${med:-0}
+    high=$(grep -c 'HIGH' "$LOG_FILE" 2>/dev/null || true); high=${high:-0}
 
     local cache_plus_ai=$((cache + ai))
     local hit_rate=0
