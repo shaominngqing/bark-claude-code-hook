@@ -102,7 +102,7 @@ Claude Code 调用工具
 ## 环境要求
 
 - 已安装 [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
-- PATH 中有 `python3`
+- PATH 中有 `jq`（`brew install jq` / `apt install jq`）
 - 有 `claude` CLI（AI 评估层需要）
 - macOS（系统通知）或 Linux（需要 `notify-send`）
 

@@ -36,12 +36,12 @@ echo -e "${BOLD}  ╰───────────────────�
 
 if is_zh; then
     step "检查环境"
-    command -v python3 >/dev/null 2>&1 && ok "python3" || fail "需要 python3"
+    command -v jq      >/dev/null 2>&1 && ok "jq" || fail "需要 jq (brew install jq)"
     command -v claude  >/dev/null 2>&1 && ok "claude CLI" || warn "未检测到 claude 命令（AI 评估将不可用）"
     step "准备目录"
 else
     step "Check environment"
-    command -v python3 >/dev/null 2>&1 && ok "python3" || fail "python3 is required"
+    command -v jq      >/dev/null 2>&1 && ok "jq" || fail "jq is required (brew install jq)"
     command -v claude  >/dev/null 2>&1 && ok "claude CLI" || warn "claude CLI not found (AI assessment will be unavailable)"
     step "Prepare directories"
 fi
@@ -79,32 +79,25 @@ _is_zh() { [[ "${LANG:-}${LC_ALL:-}" =~ zh ]]; }
 
 INPUT=$(cat)
 
-TOOL_NAME=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('tool_name',''))" 2>/dev/null || echo "")
-TOOL_INPUT=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(json.dumps(d.get('tool_input',{})))" 2>/dev/null || echo "{}")
+TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
+TOOL_INPUT=$(echo "$INPUT" | jq -c '.tool_input // {}' 2>/dev/null || echo "{}")
 
 COMMAND=""
 if [ "$TOOL_NAME" = "Bash" ]; then
-    COMMAND=$(echo "$TOOL_INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('command',''))" 2>/dev/null || echo "")
+    COMMAND=$(echo "$TOOL_INPUT" | jq -r '.command // empty' 2>/dev/null || echo "")
 fi
 
 FILE_PATH=""
 if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "NotebookEdit" ]; then
-    FILE_PATH=$(echo "$TOOL_INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('file_path','') or d.get('path',''))" 2>/dev/null || echo "")
+    FILE_PATH=$(echo "$TOOL_INPUT" | jq -r '.file_path // .path // empty' 2>/dev/null || echo "")
 fi
 
 # =============================================================================
 # 输出函数
 # =============================================================================
 output_decision() {
-    python3 -c "
-import json, sys
-print(json.dumps({
-    'hookSpecificOutput': {
-        'hookEventName': 'PreToolUse',
-        'permissionDecision': sys.argv[1],
-        'permissionDecisionReason': sys.argv[2]
-    }
-}))" "$1" "$2"
+    jq -n --arg decision "$1" --arg reason "$2" \
+      '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:$decision,permissionDecisionReason:$reason}}'
 }
 
 notify() {
@@ -178,42 +171,46 @@ cache_key() {
     local tool="$1" cmd="$2" file="$3"
     case "$tool" in
         Bash)
-            local pattern
-            pattern=$(echo "$cmd" | python3 -c "
-import sys, re
-cmd = sys.stdin.read().strip()
-# 有子命令的工具
-SUBCMD_TOOLS = {'git','npm','npx','yarn','pnpm','bun','cargo','go','docker',
-    'kubectl','pip','pip3','brew','apt','dnf','yum','systemctl','launchctl'}
-# 按管道和链式操作符拆分
-parts = re.split(r'\s*(\||\|\||&&|;)\s*', cmd)
-keys = []
-for part in parts:
-    part = part.strip()
-    if part in ('|', '||', '&&', ';'):
-        keys.append(part)
-        continue
-    if not part:
-        continue
-    words = part.split()
-    # 跳过 env/sudo 等前缀
-    i = 0
-    while i < len(words) and words[i] in ('env','sudo','nohup','time','nice'):
-        i += 1
-    if i < len(words):
-        frag = words[i]
-        # 有子命令的工具：取 cmd + subcmd（如 git push, npm install）
-        if frag in SUBCMD_TOOLS and i+1 < len(words) and not words[i+1].startswith('-'):
-            frag += ' ' + words[i+1]
-            # 再取第一个 flag（如 git push --force）
-            if i+2 < len(words) and words[i+2].startswith('-'):
-                frag += ' ' + words[i+2]
-        # 非子命令工具：取 cmd + 第一个 flag
-        elif i+1 < len(words) and words[i+1].startswith('-'):
-            frag += ' ' + words[i+1]
-        keys.append(frag)
-print(''.join(keys))
-" 2>/dev/null || echo "$cmd")
+            local pattern=""
+            # Split by pipe/chain operators and extract command skeleton
+            local remaining="$cmd"
+            local SUBCMD_TOOLS=" git npm npx yarn pnpm bun cargo go docker kubectl pip pip3 brew apt dnf yum systemctl launchctl "
+            while [ -n "$remaining" ]; do
+                local segment="" op=""
+                # Extract next operator (||, &&, |, ;)
+                if [[ "$remaining" =~ ^([^|;\&]*)(\ *(\|\||&&|\||;)\ *)(.*) ]]; then
+                    segment="${BASH_REMATCH[1]}"
+                    op="${BASH_REMATCH[3]}"
+                    remaining="${BASH_REMATCH[4]}"
+                else
+                    segment="$remaining"
+                    remaining=""
+                fi
+                segment=$(echo "$segment" | xargs) # trim
+                [ -z "$segment" ] && { [ -n "$op" ] && pattern+="$op"; continue; }
+                # Split into words
+                read -ra words <<< "$segment"
+                # Skip env/sudo/nohup/time/nice prefixes
+                local i=0
+                while [ $i -lt ${#words[@]} ] && [[ " env sudo nohup time nice " == *" ${words[$i]} "* ]]; do
+                    ((i++))
+                done
+                if [ $i -lt ${#words[@]} ]; then
+                    local frag="${words[$i]}"
+                    local next_i=$((i+1))
+                    local next2_i=$((i+2))
+                    if [[ "$SUBCMD_TOOLS" == *" $frag "* ]] && [ $next_i -lt ${#words[@]} ] && [[ "${words[$next_i]}" != -* ]]; then
+                        frag+=" ${words[$next_i]}"
+                        if [ $next2_i -lt ${#words[@]} ] && [[ "${words[$next2_i]}" == -* ]]; then
+                            frag+=" ${words[$next2_i]}"
+                        fi
+                    elif [ $next_i -lt ${#words[@]} ] && [[ "${words[$next_i]}" == -* ]]; then
+                        frag+=" ${words[$next_i]}"
+                    fi
+                    pattern+="$frag"
+                fi
+                [ -n "$op" ] && pattern+="$op"
+            done
             echo "bash:$pattern"
             ;;
         Edit|Write|NotebookEdit)
@@ -352,8 +349,8 @@ Operation: $description" 2>/dev/null)
 
     if [ -n "$json_line" ]; then
         local level reason
-        level=$(echo "$json_line" | python3 -c "import sys,json; print(json.load(sys.stdin).get('level',1))" 2>/dev/null || echo "1")
-        reason=$(echo "$json_line" | python3 -c "import sys,json; print(json.load(sys.stdin).get('reason','AI评估'))" 2>/dev/null || echo "AI评估")
+        level=$(echo "$json_line" | jq -r '.level // 1' 2>/dev/null || echo "1")
+        reason=$(echo "$json_line" | jq -r '.reason // "AI assessment"' 2>/dev/null || echo "AI assessment")
 
         # 写入缓存
         local key
@@ -504,66 +501,32 @@ _t() {
 }
 
 has_hook() {
-    python3 -c "
-import json
-with open('$SETTINGS') as f:
-    content = f.read().strip()
-    d = json.loads(content) if content else {}
-hooks = d.get('hooks', {}).get('PreToolUse', [])
-for h in hooks:
-    for cmd in h.get('hooks', []):
-        if 'risk-guard.sh' in cmd.get('command', ''):
-            exit(0)
-exit(1)" 2>/dev/null
+    jq -e '.hooks.PreToolUse[]?.hooks[]? | select(.command | contains("risk-guard.sh"))' "$SETTINGS" >/dev/null 2>&1
 }
 
 enable_hook() {
-    python3 -c "
-import json, sys
-with open('$SETTINGS') as f:
-    content = f.read().strip()
-    d = json.loads(content) if content else {}
-hook_entry = {'matcher': '*', 'hooks': [{'type': 'command', 'command': '$HOOK_SCRIPT', 'timeout': 30}]}
-if 'hooks' not in d:
-    d['hooks'] = {}
-pre = d['hooks'].get('PreToolUse', [])
-for h in pre:
-    for cmd in h.get('hooks', []):
-        if 'risk-guard.sh' in cmd.get('command', ''):
-            sys.exit(1)
-pre.append(hook_entry)
-d['hooks']['PreToolUse'] = pre
-with open('$SETTINGS', 'w') as f:
-    json.dump(d, f, indent=2, ensure_ascii=False)" 2>/dev/null
-    if [ $? -eq 0 ]; then _t turned_on; else _t already_on; fi
+    if has_hook; then
+        _t already_on
+    else
+        local tmp
+        tmp=$(jq --arg cmd "$HOOK_SCRIPT" \
+          '.hooks.PreToolUse = (.hooks.PreToolUse // []) + [{matcher:"*",hooks:[{type:"command",command:$cmd,timeout:30}]}]' \
+          "$SETTINGS") && echo "$tmp" > "$SETTINGS"
+        _t turned_on
+    fi
 }
 
 disable_hook() {
-    python3 -c "
-import json, sys
-with open('$SETTINGS') as f:
-    content = f.read().strip()
-    d = json.loads(content) if content else {}
-pre = d.get('hooks', {}).get('PreToolUse', [])
-new_pre, found = [], False
-for h in pre:
-    keep = True
-    for cmd in h.get('hooks', []):
-        if 'risk-guard.sh' in cmd.get('command', ''):
-            keep, found = False, True
-    if keep:
-        new_pre.append(h)
-if not found:
-    sys.exit(1)
-if new_pre:
-    d['hooks']['PreToolUse'] = new_pre
-else:
-    d.get('hooks', {}).pop('PreToolUse', None)
-    if not d.get('hooks'):
-        d.pop('hooks', None)
-with open('$SETTINGS', 'w') as f:
-    json.dump(d, f, indent=2, ensure_ascii=False)" 2>/dev/null
-    if [ $? -eq 0 ]; then _t turned_off; else _t already_off; fi
+    if ! has_hook; then
+        _t already_off
+    else
+        local tmp
+        tmp=$(jq '[.hooks.PreToolUse[]? | select(.hooks | all(.command | contains("risk-guard.sh") | not))] as $new |
+          if ($new | length) > 0 then .hooks.PreToolUse = $new
+          else del(.hooks.PreToolUse) | if (.hooks | length) == 0 then del(.hooks) else . end
+          end' "$SETTINGS") && echo "$tmp" > "$SETTINGS"
+        _t turned_off
+    fi
 }
 
 show_status() {
@@ -585,31 +548,27 @@ test_command() {
     fi
 
     local payload
-    payload=$(echo "$cmd" | python3 -c "import sys,json; print(json.dumps({'tool_name':'Bash','tool_input':{'command':sys.stdin.read().strip()}}))")
+    payload=$(jq -n --arg cmd "$cmd" '{tool_name:"Bash",tool_input:{command:$cmd}}')
 
     local start end
-    start=$(python3 -c "import time; print(time.time())")
+    start=$(date +%s)
     local result
     result=$(echo "$payload" | env -u CLAUDECODE "$HOOK_SCRIPT" 2>/dev/null)
-    end=$(python3 -c "import time; print(time.time())")
+    end=$(date +%s)
 
-    local elapsed
-    elapsed=$(python3 -c "import time; print(f'{$end - $start:.1f}s')")
+    local elapsed="$((end - start))s"
 
-    echo "$result" | _RG_ELAPSED="$elapsed" python3 -c "
-import json, sys, os
-elapsed = os.environ.get('_RG_ELAPSED', '?')
-raw = sys.stdin.read().strip()
-try:
-    d = json.loads(raw)
-    o = d['hookSpecificOutput']
-    decision = o['permissionDecision']
-    reason = o['permissionDecisionReason']
-    icons = {'allow': '✅', 'ask': '🚨', 'deny': '❌'}
-    print(f'{icons.get(decision, \"?\")} {decision}  ({reason})  [{elapsed}]')
-except:
-    print(f'⚠️  Parse error: {raw[:100]}')
-"
+    local decision reason icon
+    decision=$(echo "$result" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+    reason=$(echo "$result" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty' 2>/dev/null)
+    if [ -n "$decision" ]; then
+        case "$decision" in
+            allow) icon="✅" ;; ask) icon="🚨" ;; deny) icon="❌" ;; *) icon="?" ;;
+        esac
+        echo "$icon $decision  ($reason)  [$elapsed]"
+    else
+        echo "⚠️  Parse error: ${result:0:100}"
+    fi
 }
 
 cache_cmd() {
@@ -744,25 +703,12 @@ fi
 
 # ═══ 注入 hooks 配置 ═══
 if is_zh; then step "配置 Claude Code Hooks"; else step "Configure Claude Code Hooks"; fi
-python3 -c "
-import json, os
-p = os.path.expanduser('$SETTINGS')
-with open(p) as f:
-    content = f.read().strip()
-    d = json.loads(content) if content else {}
-hook_entry = {'matcher': '*', 'hooks': [{'type': 'command', 'command': '$HOOK_SCRIPT', 'timeout': 30}]}
-if 'hooks' not in d:
-    d['hooks'] = {}
-pre = d['hooks'].get('PreToolUse', [])
-for h in pre:
-    for cmd in h.get('hooks', []):
-        if 'risk-guard.sh' in cmd.get('command', ''):
-            exit(0)
-pre.append(hook_entry)
-d['hooks']['PreToolUse'] = pre
-with open(p, 'w') as f:
-    json.dump(d, f, indent=2, ensure_ascii=False)
-"
+# Inject hook into settings if not already present
+if ! jq -e '.hooks.PreToolUse[]?.hooks[]? | select(.command | contains("risk-guard.sh"))' "$SETTINGS" >/dev/null 2>&1; then
+    tmp=$(jq --arg cmd "$HOOK_SCRIPT" \
+      '.hooks.PreToolUse = (.hooks.PreToolUse // []) + [{matcher:"*",hooks:[{type:"command",command:$cmd,timeout:30}]}]' \
+      "$SETTINGS") && echo "$tmp" > "$SETTINGS"
+fi
 ok "PreToolUse hook → settings.json"
 
 echo ""

@@ -102,7 +102,7 @@ Claude Code tool call
 ## Requirements
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed
-- `python3` in PATH
+- `jq` in PATH (`brew install jq` / `apt install jq`)
 - `claude` CLI (required for AI assessment layer)
 - macOS (system notifications) or Linux (requires `notify-send`)
 
