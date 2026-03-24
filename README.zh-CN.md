@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="Risk Guard" width="800">
+  <img src="assets/banner.svg" alt="Bark" width="800">
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@
 
 ## 怎么解决的
 
-Risk Guard 拦截每一次工具调用，智能决策：
+Bark 拦截每一次工具调用，智能决策：
 
 | 场景 | 处理方式 | 延迟 |
 |---|---|---|
@@ -54,30 +54,30 @@ bash Risk-Guard/install.sh
 ## 使用
 
 ```bash
-risk-guard status         # 查看状态
-risk-guard on / off       # 启用 / 禁用
-risk-guard toggle         # 切换开关
-risk-guard test <cmd>     # 测试命令风险等级
-risk-guard test -v <cmd>  # 详细模式，显示评估过程
-risk-guard test -n <cmd>  # 模拟运行，仅展示不拦截
-risk-guard cache [clear]  # 查看 / 清空缓存
-risk-guard log [N|clear]  # 查看 / 清空日志
-risk-guard stats          # 查看统计数据
-risk-guard rules [edit]   # 查看 / 编辑自定义规则
-risk-guard update         # 更新到最新版本
-risk-guard uninstall      # 完全卸载
+bark status         # 查看状态
+bark on / off       # 启用 / 禁用
+bark toggle         # 切换开关
+bark test <cmd>     # 测试命令风险等级
+bark test -v <cmd>  # 详细模式，显示评估过程
+bark test -n <cmd>  # 模拟运行，仅展示不拦截
+bark cache [clear]  # 查看 / 清空缓存
+bark log [N|clear]  # 查看 / 清空日志
+bark stats          # 查看统计数据
+bark rules [edit]   # 查看 / 编辑自定义规则
+bark update         # 更新到最新版本
+bark uninstall      # 完全卸载
 ```
 
 ### 测试示例
 
 ```bash
-risk-guard test ls -la
+bark test ls -la
 # ✅ allow  ([低风险] 只读目录查看)  [0.0s]  — 缓存命中
 
-risk-guard test rm -rf /
+bark test rm -rf /
 # 🚨 ask  ([高风险] 极度危险的递归删除根目录)  [6.8s]
 
-risk-guard test npm install express
+bark test npm install express
 # ✅ allow  ([中风险] 安装npm依赖包)  [7.2s]
 ```
 
@@ -96,7 +96,7 @@ Claude Code 调用工具
            ▼
 ┌──────────────────────────┐
 │  第 1.5 层: 自定义规则     │  用户定义的命令模式
-│  risk-guard.conf          │  allow / notify / block
+│  bark.conf          │  allow / notify / block
 └──────────┬───────────────┘
            │ 未命中
            ▼
@@ -120,7 +120,7 @@ Claude Code 调用工具
 
 ### 自定义规则
 
-创建 `~/.claude/hooks/risk-guard.conf` 定义自己的规则（在 AI 评估之前检查）：
+创建 `~/.claude/hooks/bark.conf` 定义自己的规则（在 AI 评估之前检查）：
 
 ```conf
 # 格式: 动作: 模式（支持 * 通配符）
@@ -143,7 +143,7 @@ block: rm -rf /
 ## 卸载
 
 ```bash
-risk-guard uninstall
+bark uninstall
 ```
 
 ## License

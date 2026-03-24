@@ -28,8 +28,8 @@ jobs:
         run: |
           # Extract the HOOK__EOF heredoc content
           sed -n "/^cat > \"\$HOOK_SCRIPT\" << 'HOOK__EOF'/,/^HOOK__EOF/p" install.sh \
-            | tail -n +2 | sed '$d' > /tmp/risk-guard.sh
-          chmod +x /tmp/risk-guard.sh
+            | tail -n +2 | sed '$d' > /tmp/bark.sh
+          chmod +x /tmp/bark.sh
 
       - name: Run tests
         run: bash tests/test_core.sh

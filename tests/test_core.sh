@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# Risk Guard - Core Logic Tests
+# Bark - Core Logic Tests
 # =============================================================================
 # Tests cache_key normalization, fast_check, output format, and custom rules.
 # Does NOT require claude CLI (no AI layer tests).
@@ -10,7 +10,7 @@ set -uo pipefail
 
 PASS=0
 FAIL=0
-HOOK_SCRIPT="/tmp/risk-guard.sh"
+HOOK_SCRIPT="/tmp/bark.sh"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; BOLD='\033[1m'; DIM='\033[2m'; NC='\033[0m'
 
@@ -151,7 +151,7 @@ assert_contains "permissionDecisionReason non-empty" "." "$reason"
 echo -e "\n${BOLD}Custom Rules${NC}\n"
 # =============================================================================
 
-CONF_FILE="$HOME/.claude/hooks/risk-guard.conf"
+CONF_FILE="$HOME/.claude/hooks/bark.conf"
 mkdir -p "$HOME/.claude/hooks"
 
 # Backup existing conf if any
@@ -196,7 +196,7 @@ block: echo danger
 EOF
 
 result=$(echo '{"tool_name":"Bash","tool_input":{"command":"echo danger"}}' \
-  | RISK_GUARD_DRY_RUN=1 "$HOOK_SCRIPT" 2>/dev/null)
+  | BARK_DRY_RUN=1 "$HOOK_SCRIPT" 2>/dev/null)
 decision=$(get_decision "$result")
 assert_eq "dry-run: block rule → allow" "allow" "$decision"
 

@@ -9,18 +9,37 @@
       <stop offset="50%" style="stop-color:#818cf8" />
       <stop offset="100%" style="stop-color:#c084fc" />
     </linearGradient>
-    <linearGradient id="bolt" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#fbbf24" />
-      <stop offset="100%" style="stop-color:#f59e0b" />
+    <linearGradient id="dog-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#38bdf8" />
+      <stop offset="100%" style="stop-color:#818cf8" />
     </linearGradient>
   </defs>
   <rect width="800" height="160" rx="12" fill="url(#bg)" />
-  <text x="90" y="85" font-family="system-ui, -apple-system, sans-serif" font-size="48" font-weight="700" fill="url(#text-grad)">Risk Guard</text>
-  <text x="90" y="120" font-family="system-ui, -apple-system, sans-serif" font-size="18" fill="#94a3b8" font-style="italic">AI-Powered Risk Assessment for Claude Code</text>
-  <!-- Lightning bolt -->
-  <g transform="translate(36, 45)">
-    <path d="M25 0 L10 30 L20 30 L15 55 L40 20 L28 20 L35 0 Z" fill="url(#bolt)" opacity="0.9"/>
+  <!-- Dog silhouette (watchdog) -->
+  <g transform="translate(30, 30) scale(0.85)" fill="url(#dog-grad)" opacity="0.9">
+    <!-- Ear left -->
+    <path d="M18 28 Q12 8 22 18 Q26 22 24 28 Z"/>
+    <!-- Ear right -->
+    <path d="M38 28 Q44 8 34 18 Q30 22 32 28 Z"/>
+    <!-- Head -->
+    <ellipse cx="28" cy="38" rx="16" ry="14"/>
+    <!-- Snout -->
+    <ellipse cx="28" cy="48" rx="8" ry="6" fill="#94a3b8" opacity="0.3"/>
+    <!-- Eyes -->
+    <circle cx="22" cy="35" r="2.5" fill="#0f0f1a"/>
+    <circle cx="34" cy="35" r="2.5" fill="#0f0f1a"/>
+    <!-- Eye glint -->
+    <circle cx="23" cy="34" r="0.8" fill="#fff"/>
+    <circle cx="35" cy="34" r="0.8" fill="#fff"/>
+    <!-- Nose -->
+    <ellipse cx="28" cy="44" rx="3" ry="2" fill="#1a1a2e"/>
+    <!-- Body -->
+    <path d="M16 50 Q10 70 18 85 L24 85 Q20 72 22 60 L34 60 Q36 72 32 85 L38 85 Q46 70 40 50 Z"/>
+    <!-- Tail (alert/up) -->
+    <path d="M40 55 Q52 40 48 30" stroke="url(#dog-grad)" stroke-width="3" fill="none" stroke-linecap="round"/>
   </g>
+  <text x="110" y="85" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="700" fill="url(#text-grad)">Bark</text>
+  <text x="110" y="120" font-family="system-ui, -apple-system, sans-serif" font-size="17" fill="#94a3b8" font-style="italic">AI-Powered Risk Assessment for Claude Code</text>
   <!-- Decorative dots -->
   <circle cx="720" cy="40" r="3" fill="#38bdf8" opacity="0.4"/>
   <circle cx="740" cy="55" r="2" fill="#818cf8" opacity="0.3"/>

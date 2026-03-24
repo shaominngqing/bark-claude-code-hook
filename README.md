@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="Risk Guard" width="800">
+  <img src="assets/banner.svg" alt="Bark" width="800">
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@ When running multiple Claude Code sessions in parallel, even safe operations req
 
 ## How It Works
 
-Risk Guard intercepts every tool call and makes smart decisions:
+Bark intercepts every tool call and makes smart decisions:
 
 | Scenario | Action | Latency |
 |---|---|---|
@@ -54,30 +54,30 @@ bash Risk-Guard/install.sh
 ## Usage
 
 ```bash
-risk-guard status         # Show status
-risk-guard on / off       # Enable / disable
-risk-guard toggle         # Toggle on/off
-risk-guard test <cmd>     # Test a command's risk level
-risk-guard test -v <cmd>  # Test with verbose debug output
-risk-guard test -n <cmd>  # Dry-run: show assessment, always allow
-risk-guard cache [clear]  # View / clear cache
-risk-guard log [N|clear]  # View / clear logs
-risk-guard stats          # Show statistics dashboard
-risk-guard rules [edit]   # View / edit custom rules
-risk-guard update         # Update to latest version
-risk-guard uninstall      # Completely uninstall
+bark status         # Show status
+bark on / off       # Enable / disable
+bark toggle         # Toggle on/off
+bark test <cmd>     # Test a command's risk level
+bark test -v <cmd>  # Test with verbose debug output
+bark test -n <cmd>  # Dry-run: show assessment, always allow
+bark cache [clear]  # View / clear cache
+bark log [N|clear]  # View / clear logs
+bark stats          # Show statistics dashboard
+bark rules [edit]   # View / edit custom rules
+bark update         # Update to latest version
+bark uninstall      # Completely uninstall
 ```
 
 ### Examples
 
 ```bash
-risk-guard test ls -la
+bark test ls -la
 # ✅ allow  ([Low] Read-only directory listing)  [0.0s]  — cache hit
 
-risk-guard test rm -rf /
+bark test rm -rf /
 # 🚨 ask  ([High] Extremely dangerous recursive root deletion)  [6.8s]
 
-risk-guard test npm install express
+bark test npm install express
 # ✅ allow  ([Medium] Install npm dependency)  [7.2s]
 ```
 
@@ -96,7 +96,7 @@ Claude Code tool call
            ▼
 ┌──────────────────────────────┐
 │  Layer 1.5: Custom Rules     │  User-defined patterns
-│  risk-guard.conf             │  allow / notify / block
+│  bark.conf             │  allow / notify / block
 └──────────┬───────────────────┘
            │ miss
            ▼
@@ -120,7 +120,7 @@ Claude Code tool call
 
 ### Custom Rules
 
-Create `~/.claude/hooks/risk-guard.conf` to define your own rules (checked before AI assessment):
+Create `~/.claude/hooks/bark.conf` to define your own rules (checked before AI assessment):
 
 ```conf
 # Format: action: pattern (* wildcard supported)
@@ -143,7 +143,7 @@ block: rm -rf /
 ## Uninstall
 
 ```bash
-risk-guard uninstall
+bark uninstall
 ```
 
 ## License
