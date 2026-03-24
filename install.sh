@@ -16,23 +16,63 @@ SETTINGS="$HOME/.claude/settings.json"
 HOOK_SCRIPT="$HOOKS_DIR/risk-guard.sh"
 CTL_SCRIPT="$HOOKS_DIR/risk-guard-ctl.sh"
 
+NC='\033[0m'; BOLD='\033[1m'; DIM='\033[2m'; ITALIC='\033[3m'
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'
-BOLD='\033[1m'; DIM='\033[2m'; NC='\033[0m'
+C1='\033[38;5;39m'; C2='\033[38;5;45m'; C3='\033[38;5;51m'; C4='\033[38;5;87m'  # gradient blues
+ACCENT='\033[38;5;213m'  # pink accent
+
+# Animated typewriter
+_type() { local s="$1" d="${2:-0.02}"; for ((i=0;i<${#s};i++)); do printf '%s' "${s:$i:1}"; sleep "$d"; done; }
+
+# Spinner for a command: _spin "message" command args...
+_spin() {
+    local msg="$1"; shift
+    local frames=('▸▹▹▹▹' '▹▸▹▹▹' '▹▹▸▹▹' '▹▹▹▸▹' '▹▹▹▹▸')
+    "$@" &>/dev/null &
+    local pid=$!
+    local i=0
+    while kill -0 "$pid" 2>/dev/null; do
+        printf "\r  ${C2}${frames[$((i % ${#frames[@]}))]}${NC} ${DIM}%s${NC}" "$msg"
+        sleep 0.08
+        ((i++))
+    done
+    wait "$pid" 2>/dev/null
+    local rc=$?
+    printf "\r\033[K"
+    return $rc
+}
+
 ok()    { echo -e "  ${GREEN}✓${NC} $1"; }
 warn()  { echo -e "  ${YELLOW}⚠${NC} $1"; }
 fail()  { echo -e "  ${RED}✗${NC} $1"; exit 1; }
-step()  { echo -e "\n${BOLD}${CYAN}▸ $1${NC}"; }
+step()  { echo -e "\n  ${C1}${BOLD}▸${NC} ${BOLD}$1${NC}"; }
 
 # i18n: detect locale
 is_zh() { [[ "${LANG:-}${LC_ALL:-}" =~ zh ]]; }
 
+# --- Animated banner ---
 echo ""
-echo -e "${BOLD}  ╭───────────────────────────────────────────╮${NC}"
-echo -e "${BOLD}  │                                           │${NC}"
-echo -e "${BOLD}  │   ${CYAN}⚡ Risk Guard${NC}${BOLD}  for Claude Code          │${NC}"
-echo -e "${BOLD}  │   ${DIM}AI-Powered Risk Assessment Hook${NC}${BOLD}         │${NC}"
-echo -e "${BOLD}  │                                           │${NC}"
-echo -e "${BOLD}  ╰───────────────────────────────────────────╯${NC}"
+sleep 0.1
+echo -e "  ${DIM}╭─────────────────────────────────────────────╮${NC}"
+sleep 0.05
+echo -e "  ${DIM}│${NC}                                             ${DIM}│${NC}"
+printf "  ${DIM}│${NC}   "
+_type "⚡ " 0.05
+printf "${C1}${BOLD}"
+_type "Risk Guard" 0.04
+printf "${NC}"
+_type "  " 0.02
+printf "${DIM}"
+_type "for Claude Code" 0.03
+printf "${NC}    ${DIM}│${NC}\n"
+sleep 0.1
+printf "  ${DIM}│${NC}   ${DIM}${ITALIC}"
+_type "AI-Powered Risk Assessment" 0.02
+printf "${NC}          ${DIM}│${NC}\n"
+sleep 0.05
+echo -e "  ${DIM}│${NC}                                             ${DIM}│${NC}"
+echo -e "  ${DIM}╰─────────────────────────────────────────────╯${NC}"
+echo ""
 
 if is_zh; then
     step "检查环境"
@@ -491,6 +531,49 @@ HOOK_SCRIPT="$HOME/.claude/hooks/risk-guard.sh"
 CACHE_DIR="$HOME/.claude/hooks/cache"
 LOG_FILE="$HOME/.claude/hooks/risk-guard.log"
 
+NC='\033[0m'; BOLD='\033[1m'; DIM='\033[2m'; ITALIC='\033[3m'
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'
+BLUE='\033[0;34m'; MAGENTA='\033[0;35m'
+C1='\033[38;5;39m'; C2='\033[38;5;45m'; C3='\033[38;5;51m'; C4='\033[38;5;87m'
+ACCENT='\033[38;5;213m'; ORANGE='\033[38;5;208m'; PURPLE='\033[38;5;141m'
+
+# Gradient text: _gradient "text" start_color_code count
+_gradient() {
+    local text="$1" start="${2:-39}" count="${3:-6}"
+    for ((i=0; i<${#text}; i++)); do
+        local c=$(( start + (i % count) ))
+        printf "\033[38;5;${c}m%s" "${text:$i:1}"
+    done
+    printf "${NC}"
+}
+
+# Animated progress bar: _abar <value> <max> <width> <color>
+_abar() {
+    local val=$1 max=$2 width=${3:-20} color="${4:-$C2}"
+    [ "$max" -eq 0 ] && max=1
+    local filled=$(( val * width / max ))
+    [ "$filled" -gt "$width" ] && filled=$width
+    local empty=$(( width - filled ))
+    # Fill with gradient blocks
+    for ((i=0; i<filled; i++)); do
+        local shade=$(( 236 + (i * 18 / width) ))
+        [ "$shade" -gt 255 ] && shade=255
+        printf "${color}▓${NC}"
+    done
+    for ((i=0; i<empty; i++)); do
+        printf "${DIM}░${NC}"
+    done
+}
+
+# Metric card
+_card() {
+    local label="$1" value="$2" color="${3:-$C2}"
+    echo -e "  ${DIM}┌──────────────────────┐${NC}"
+    printf "  ${DIM}│${NC} %-20s ${DIM}│${NC}\n" "$label"
+    echo -e "  ${DIM}│${NC}  ${color}${BOLD}${value}${NC}$(printf '%*s' $((19 - ${#value})) '')${DIM}│${NC}"
+    echo -e "  ${DIM}└──────────────────────┘${NC}"
+}
+
 ([ ! -f "$SETTINGS" ] || [ ! -s "$SETTINGS" ]) && echo '{}' > "$SETTINGS"
 
 # i18n
@@ -503,10 +586,10 @@ _t() {
             disabled)       echo "🔴 Risk Guard: 已禁用" ;;
             cache_entries)  echo "   缓存条目" ;;
             log_lines)     echo "   日志行数" ;;
-            already_on)    echo "⚡ Risk Guard 已经是启用状态" ;;
-            turned_on)     echo "✅ Risk Guard 已启用 (新会话生效)" ;;
-            already_off)   echo "⚡ Risk Guard 已经是禁用状态" ;;
-            turned_off)    echo "⛔ Risk Guard 已禁用 (新会话生效)" ;;
+            already_on)    echo -e "\n  ${GREEN}●${NC} Risk Guard 已经是启用状态\n" ;;
+            turned_on)     echo -e "\n  ${GREEN}●${NC} Risk Guard 已启用 ${DIM}(新会话生效)${NC}\n" ;;
+            already_off)   echo -e "\n  ${DIM}●${NC} Risk Guard 已经是禁用状态\n" ;;
+            turned_off)    echo -e "\n  ${DIM}●${NC} Risk Guard 已禁用 ${DIM}(新会话生效)${NC}\n" ;;
             cache_cleared) echo "✅ 缓存已清空" ;;
             cache_empty)   echo "📦 缓存为空" ;;
             cache_stats)   echo "📦 缓存统计:" ;;
@@ -534,13 +617,7 @@ _t() {
             rules_empty)   echo "📋 未定义自定义规则" ;;
             rules_header)  echo "📋 自定义规则:" ;;
             rules_path)    echo "   文件" ;;
-            stats_title)   echo "📊 Risk Guard 统计" ;;
-            stats_total)   echo "   总评估次数" ;;
-            stats_source)  echo "   按来源" ;;
-            stats_level)   echo "   按风险" ;;
             stats_empty)   echo "📊 暂无统计数据（日志为空）" ;;
-            stats_blocked) echo "   高风险拦截" ;;
-            stats_hitrate) echo "   缓存命中率" ;;
             cmd_update)    echo "  update            更新到最新版本" ;;
             cmd_uninstall) echo "  uninstall         完全卸载" ;;
             cmd_help)      echo "  help              显示此帮助" ;;
@@ -555,10 +632,10 @@ _t() {
             disabled)       echo "🔴 Risk Guard: Disabled" ;;
             cache_entries)  echo "   Cache entries" ;;
             log_lines)     echo "   Log lines" ;;
-            already_on)    echo "⚡ Risk Guard is already enabled" ;;
-            turned_on)     echo "✅ Risk Guard enabled (takes effect in new sessions)" ;;
-            already_off)   echo "⚡ Risk Guard is already disabled" ;;
-            turned_off)    echo "⛔ Risk Guard disabled (takes effect in new sessions)" ;;
+            already_on)    echo -e "\n  ${GREEN}●${NC} Risk Guard is already enabled\n" ;;
+            turned_on)     echo -e "\n  ${GREEN}●${NC} Risk Guard enabled ${DIM}(takes effect in new sessions)${NC}\n" ;;
+            already_off)   echo -e "\n  ${DIM}●${NC} Risk Guard is already disabled\n" ;;
+            turned_off)    echo -e "\n  ${DIM}●${NC} Risk Guard disabled ${DIM}(takes effect in new sessions)${NC}\n" ;;
             cache_cleared) echo "✅ Cache cleared" ;;
             cache_empty)   echo "📦 Cache is empty" ;;
             cache_stats)   echo "📦 Cache statistics:" ;;
@@ -586,13 +663,7 @@ _t() {
             rules_empty)   echo "📋 No custom rules defined" ;;
             rules_header)  echo "📋 Custom rules:" ;;
             rules_path)    echo "   File" ;;
-            stats_title)   echo "📊 Risk Guard Statistics" ;;
-            stats_total)   echo "   Total assessments" ;;
-            stats_source)  echo "   By source" ;;
-            stats_level)   echo "   By risk level" ;;
             stats_empty)   echo "📊 No statistics yet (log is empty)" ;;
-            stats_blocked) echo "   High-risk blocked" ;;
-            stats_hitrate) echo "   Cache hit rate" ;;
             cmd_update)    echo "  update            Update to latest version" ;;
             cmd_uninstall) echo "  uninstall         Completely uninstall" ;;
             cmd_help)      echo "  help              Show this help" ;;
@@ -634,13 +705,21 @@ disable_hook() {
 }
 
 show_status() {
-    if has_hook; then _t enabled; else _t disabled; fi
+    echo ""
+    printf "  "; _gradient "Risk Guard" 39 6; echo ""
+    echo ""
+    if has_hook; then
+        echo -e "  ${GREEN}●${NC} ${BOLD}Active${NC}  ${DIM}─── hook is running${NC}"
+    else
+        echo -e "  ${RED}●${NC} ${BOLD}Inactive${NC}  ${DIM}─── hook is disabled${NC}"
+    fi
+    echo ""
     local count=0
     [ -d "$CACHE_DIR" ] && count=$(find "$CACHE_DIR" -type f 2>/dev/null | wc -l | tr -d ' ')
-    echo "$(_t cache_entries): $count"
     local log_lines=0
     [ -f "$LOG_FILE" ] && log_lines=$(wc -l < "$LOG_FILE" | tr -d ' ')
-    echo "$(_t log_lines): $log_lines"
+    echo -e "  ${DIM}Cache entries${NC}  ${C2}${count}${NC}    ${DIM}Log entries${NC}  ${C2}${log_lines}${NC}"
+    echo ""
 }
 
 test_command() {
@@ -682,40 +761,43 @@ cache_cmd() {
             _t cache_cleared
             ;;
         *)
+            echo ""
             if [ ! -d "$CACHE_DIR" ] || [ -z "$(ls -A "$CACHE_DIR" 2>/dev/null)" ]; then
                 _t cache_empty
+                echo ""
                 return
             fi
-            local count
+            local count size
             count=$(find "$CACHE_DIR" -type f | wc -l | tr -d ' ')
-            local size
             size=$(du -sh "$CACHE_DIR" 2>/dev/null | cut -f1)
-            _t cache_stats
-            echo "$(_t cache_count): $count"
-            echo "$(_t cache_size):   $size"
-            echo "$(_t cache_dir):   $CACHE_DIR"
+            printf "  "; _gradient "Cache" 39 6; echo ""
             echo ""
-            _t cache_recent
+            echo -e "  ${DIM}Entries${NC}  ${C2}${BOLD}${count}${NC}    ${DIM}Size${NC}  ${C2}${size}${NC}"
+            echo -e "  ${DIM}${CACHE_DIR}${NC}"
+            echo ""
+            if _is_zh; then echo -e "  ${BOLD}最近缓存${NC}"
+            else echo -e "  ${BOLD}Recent${NC}"; fi
+            echo ""
             for f in $(ls -t "$CACHE_DIR" | head -10); do
                 local content age_s age_h
                 content=$(cat "$CACHE_DIR/$f")
                 age_s=$(( $(date +%s) - $(stat -f %m "$CACHE_DIR/$f" 2>/dev/null || stat -c %Y "$CACHE_DIR/$f" 2>/dev/null || echo 0) ))
                 if [ "$age_s" -lt 3600 ]; then
-                    age_h="${age_s}s ago"
+                    age_h="${age_s}s"
                 elif [ "$age_s" -lt 86400 ]; then
-                    age_h="$(( age_s / 3600 ))h ago"
+                    age_h="$(( age_s / 3600 ))h"
                 else
-                    age_h="$(( age_s / 86400 ))d ago"
+                    age_h="$(( age_s / 86400 ))d"
                 fi
-                local level reason
+                local level reason color
                 level=$(echo "$content" | cut -d'|' -f1)
                 reason=$(echo "$content" | cut -d'|' -f2-)
-                local icon
                 case "$level" in
-                    0) icon="✅" ;; 1) icon="⚠️ " ;; 2) icon="🚨" ;; *) icon="?" ;;
+                    0) color="$GREEN"  ;; 1) color="$YELLOW" ;; 2) color="$RED" ;; *) color="$DIM" ;;
                 esac
-                echo "   $icon $reason  ($age_h)"
+                echo -e "    ${color}◆${NC} ${reason}  ${DIM}${age_h} ago${NC}"
             done
+            echo ""
             ;;
     esac
 }
@@ -728,13 +810,27 @@ log_cmd() {
             ;;
         *)
             if [ ! -f "$LOG_FILE" ] || [ ! -s "$LOG_FILE" ]; then
+                echo ""
                 _t log_empty
+                echo ""
                 return
             fi
             local n="${1:-20}"
-            echo "$(_t log_recent) $n $(_t log_suffix)"
             echo ""
-            tail -n "$n" "$LOG_FILE"
+            if _is_zh; then printf "  "; _gradient "最近 ${n} 条日志" 39 6; echo ""
+            else printf "  "; _gradient "Last ${n} entries" 39 6; echo ""; fi
+            echo ""
+            tail -n "$n" "$LOG_FILE" | while IFS= read -r line; do
+                # Colorize log lines based on level
+                if echo "$line" | grep -q 'HIGH'; then
+                    echo -e "    ${RED}▎${NC}${DIM}${line}${NC}"
+                elif echo "$line" | grep -q 'MED '; then
+                    echo -e "    ${YELLOW}▎${NC}${DIM}${line}${NC}"
+                else
+                    echo -e "    ${GREEN}▎${NC}${DIM}${line}${NC}"
+                fi
+            done
+            echo ""
             ;;
     esac
 }
@@ -758,9 +854,6 @@ stats_cmd() {
         return
     fi
 
-    _t stats_title
-    echo ""
-
     local total fast cache rule ai low med high
     total=$(wc -l < "$LOG_FILE" | tr -d ' ')
     fast=$(grep -c '\[FAST\]' "$LOG_FILE" 2>/dev/null || echo 0)
@@ -771,27 +864,69 @@ stats_cmd() {
     med=$(grep -c 'MED ' "$LOG_FILE" 2>/dev/null || echo 0)
     high=$(grep -c 'HIGH' "$LOG_FILE" 2>/dev/null || echo 0)
 
-    echo "$(_t stats_total): $total"
-    echo ""
-    echo "$(_t stats_source):"
-    echo "     FAST  (fast rules)  : $fast"
-    echo "     CACHE (cache hit)   : $cache"
-    echo "     RULE  (custom rules): $rule"
-    echo "     AI    (AI assessed) : $ai"
-    echo ""
-    echo "$(_t stats_level):"
-    echo "     ✅ Low    : $low"
-    echo "     ⚠️  Medium : $med"
-    echo "     🚨 High   : $high"
-    echo ""
-    echo "$(_t stats_blocked): $high"
-
-    # cache hit rate = cache / (cache + ai), only if there were cache or ai calls
     local cache_plus_ai=$((cache + ai))
-    if [ "$cache_plus_ai" -gt 0 ]; then
-        local rate=$((cache * 100 / cache_plus_ai))
-        echo "$(_t stats_hitrate): ${rate}%  ($cache / $cache_plus_ai)"
-    fi
+    local hit_rate=0
+    [ "$cache_plus_ai" -gt 0 ] && hit_rate=$((cache * 100 / cache_plus_ai))
+
+    # Animated header
+    echo ""
+    echo -e "  ${DIM}╭───────────────────────────────────────────────────╮${NC}"
+    printf "  ${DIM}│${NC}  "; _gradient "◆ Risk Guard Statistics" 39 6; printf "                         ${DIM}│${NC}\n"
+    echo -e "  ${DIM}╰───────────────────────────────────────────────────╯${NC}"
+    echo ""
+
+    # Big number - total
+    if _is_zh; then printf "  ${DIM}总评估${NC}  "; else printf "  ${DIM}Total${NC}  "; fi
+    echo -e "${C1}${BOLD}${total}${NC}"
+    echo ""
+
+    # Source breakdown with animated bars
+    if _is_zh; then echo -e "  ${BOLD}评估来源${NC}"
+    else echo -e "  ${BOLD}Assessment Source${NC}"; fi
+    echo ""
+    local pct
+    for src_name in FAST CACHE RULE AI; do
+        local src_val src_color src_label
+        case "$src_name" in
+            FAST)  src_val=$fast;  src_color="$GREEN";   src_label="${DIM}fast rules${NC}" ;;
+            CACHE) src_val=$cache; src_color="$C2";      src_label="${DIM}cache hit${NC}" ;;
+            RULE)  src_val=$rule;  src_color="$PURPLE";  src_label="${DIM}custom rules${NC}" ;;
+            AI)    src_val=$ai;    src_color="$ORANGE";  src_label="${DIM}AI assessed${NC}" ;;
+        esac
+        [ "$total" -gt 0 ] && pct=$((src_val * 100 / total)) || pct=0
+        printf "    ${src_color}%-6s${NC} " "$src_name"
+        _abar "$src_val" "$total" 24 "$src_color"
+        printf "  ${BOLD}%3d${NC} ${DIM}(%2d%%)${NC}  %b\n" "$src_val" "$pct" "$src_label"
+    done
+    echo ""
+
+    # Risk level distribution
+    if _is_zh; then echo -e "  ${BOLD}风险分布${NC}"
+    else echo -e "  ${BOLD}Risk Distribution${NC}"; fi
+    echo ""
+    for lvl_name in Low Medium High; do
+        local lvl_val lvl_color lvl_icon
+        case "$lvl_name" in
+            Low)    lvl_val=$low;  lvl_color="$GREEN";  lvl_icon="◉" ;;
+            Medium) lvl_val=$med;  lvl_color="$YELLOW"; lvl_icon="◉" ;;
+            High)   lvl_val=$high; lvl_color="$RED";    lvl_icon="◉" ;;
+        esac
+        [ "$total" -gt 0 ] && pct=$((lvl_val * 100 / total)) || pct=0
+        printf "    ${lvl_color}${lvl_icon}${NC} %-8s " "$lvl_name"
+        _abar "$lvl_val" "$total" 24 "$lvl_color"
+        printf "  ${BOLD}%3d${NC} ${DIM}(%2d%%)${NC}\n" "$lvl_val" "$pct"
+    done
+    echo ""
+
+    # Metric cards side by side
+    local hit_str="${hit_rate}%"
+    [ "$cache_plus_ai" -eq 0 ] && hit_str="—"
+    echo -e "  ${DIM}┌──────────────────────┐  ┌──────────────────────┐${NC}"
+    echo -e "  ${DIM}│${NC}  ${ITALIC}Cache Hit Rate${NC}       ${DIM}│${NC}  ${DIM}│${NC}  ${ITALIC}High Risk Blocked${NC}    ${DIM}│${NC}"
+    printf "  ${DIM}│${NC}  ${C1}${BOLD}%-20s${NC} ${DIM}│${NC}" "$hit_str"
+    echo -e "  ${DIM}│${NC}  ${RED}${BOLD}${high}${NC}$(printf '%*s' $((19 - ${#high})) '')${DIM}│${NC}"
+    echo -e "  ${DIM}└──────────────────────┘  └──────────────────────┘${NC}"
+    echo ""
 }
 
 rules_cmd() {
@@ -801,28 +936,32 @@ rules_cmd() {
             ${EDITOR:-vi} "$conf"
             ;;
         *)
+            echo ""
             if [ ! -f "$conf" ] || [ ! -s "$conf" ]; then
                 _t rules_empty
-                echo "$(_t rules_path): $conf"
+                echo -e "  ${DIM}$conf${NC}"
+                echo ""
                 return
             fi
-            _t rules_header
+            printf "  "; _gradient "Custom Rules" 39 6; echo ""
             echo ""
-            # display non-empty non-comment lines
-            local line
+            local line count=0
             while IFS= read -r line || [ -n "$line" ]; do
                 line=$(echo "$line" | sed 's/#.*//' | xargs)
                 [ -z "$line" ] && continue
-                local action pattern icon
+                local action pattern color
                 action=$(echo "$line" | cut -d: -f1 | xargs | tr '[:upper:]' '[:lower:]')
                 pattern=$(echo "$line" | cut -d: -f2- | xargs)
                 case "$action" in
-                    allow)  icon="✅" ;; notify) icon="⚠️ " ;; block) icon="🚨" ;; *) icon="?" ;;
+                    allow)  color="$GREEN"  ;; notify) color="$YELLOW" ;; block) color="$RED" ;; *) color="$DIM" ;;
                 esac
-                echo "   $icon $action: $pattern"
+                echo -e "    ${color}◆${NC} ${BOLD}${action}${NC}  ${DIM}${pattern}${NC}"
+                ((count++))
             done < "$conf"
+            [ "$count" -eq 0 ] && echo -e "    ${DIM}(no rules defined)${NC}"
             echo ""
-            echo "$(_t rules_path): $conf"
+            echo -e "  ${DIM}$conf${NC}"
+            echo ""
             ;;
     esac
 }
@@ -844,11 +983,14 @@ update_cmd() {
 }
 
 usage() {
-    _t help_title
     echo ""
-    if _is_zh; then echo "用法: risk-guard <command>"; else echo "Usage: risk-guard <command>"; fi
+    printf "  "; _gradient "Risk Guard" 39 6; echo ""
     echo ""
-    if _is_zh; then echo "命令:"; else echo "Commands:"; fi
+    if _is_zh; then echo -e "  ${DIM}用法:${NC} ${BOLD}risk-guard${NC} ${DIM}<command>${NC}"
+    else echo -e "  ${DIM}Usage:${NC} ${BOLD}risk-guard${NC} ${DIM}<command>${NC}"; fi
+    echo ""
+    if _is_zh; then echo -e "  ${BOLD}命令${NC}"; else echo -e "  ${BOLD}Commands${NC}"; fi
+    echo ""
     _t cmd_status
     _t cmd_onoff
     _t cmd_toggle
@@ -860,6 +1002,7 @@ usage() {
     _t cmd_update
     _t cmd_uninstall
     _t cmd_help
+    echo ""
 }
 
 case "${1:-status}" in
@@ -913,41 +1056,48 @@ fi
 ok "PreToolUse hook → settings.json"
 
 echo ""
-echo -e "${BOLD}  ╭───────────────────────────────────────────╮${NC}"
-if is_zh; then
-echo -e "${BOLD}  │  ${GREEN}安装完成！${NC}${BOLD}                                │${NC}"
-else
-echo -e "${BOLD}  │  ${GREEN}Install complete!${NC}${BOLD}                         │${NC}"
-fi
-echo -e "${BOLD}  ╰───────────────────────────────────────────╯${NC}"
+sleep 0.1
+echo -e "  ${DIM}╭───────────────────────────────────────────────╮${NC}"
+printf "  ${DIM}│${NC}  "; _gradient "✦ Install complete" 34 8; printf "                          ${DIM}│${NC}\n"
+echo -e "  ${DIM}╰───────────────────────────────────────────────╯${NC}"
 echo ""
 if is_zh; then
 echo -e "  ${BOLD}工作原理${NC}"
 echo ""
-echo -e "    ${DIM}只读工具${NC}  Read / Grep / Glob ...  ${GREEN}━━▸${NC} 直接放行"
-echo -e "    ${DIM}文件编辑${NC}  普通源代码文件          ${GREEN}━━▸${NC} 直接放行"
-echo -e "    ${DIM}Bash命令${NC}  所有命令                ${CYAN}━━▸${NC} AI 评估 (~7s)"
-echo -e "    ${DIM}重复模式${NC}  同类命令第二次          ${GREEN}━━▸${NC} 缓存命中 (0s)"
-echo -e "    ${DIM}高风险  ${NC}  rm -rf / force push ... ${RED}━━▸${NC} 通知 + 确认"
+echo -e "    ${GREEN}◆${NC} ${DIM}只读工具${NC}  Read / Grep / Glob     ${DIM}──▸${NC} ${GREEN}直接放行${NC}"
+sleep 0.05
+echo -e "    ${GREEN}◆${NC} ${DIM}文件编辑${NC}  普通源代码文件         ${DIM}──▸${NC} ${GREEN}直接放行${NC}"
+sleep 0.05
+echo -e "    ${C2}◆${NC} ${DIM}Bash命令${NC}  所有命令               ${DIM}──▸${NC} ${C2}AI 评估 (~7s)${NC}"
+sleep 0.05
+echo -e "    ${GREEN}◆${NC} ${DIM}重复模式${NC}  同类命令第二次         ${DIM}──▸${NC} ${GREEN}缓存命中 (0s)${NC}"
+sleep 0.05
+echo -e "    ${RED}◆${NC} ${DIM}高风险  ${NC}  rm -rf / force push   ${DIM}──▸${NC} ${RED}通知 + 确认${NC}"
 echo ""
-echo -e "  ${BOLD}常用命令${NC}"
+echo -e "  ${BOLD}快速开始${NC}"
 echo ""
-echo -e "    ${CYAN}risk-guard${NC} ${DIM}help${NC}           查看所有命令"
+echo -e "    ${C1}risk-guard${NC} ${DIM}help${NC}           查看所有命令"
+echo -e "    ${C1}risk-guard${NC} ${DIM}stats${NC}          查看统计数据"
 echo ""
-echo -e "  ${YELLOW}▸ 新开的 Claude Code 会话自动生效${NC}"
+echo -e "  ${ACCENT}▸ 新开的 Claude Code 会话自动生效${NC}"
 else
 echo -e "  ${BOLD}How it works${NC}"
 echo ""
-echo -e "    ${DIM}Read-only${NC}  Read / Grep / Glob ...  ${GREEN}━━▸${NC} Allow"
-echo -e "    ${DIM}Edits   ${NC}  Normal source files      ${GREEN}━━▸${NC} Allow"
-echo -e "    ${DIM}Bash    ${NC}  All commands              ${CYAN}━━▸${NC} AI assess (~7s)"
-echo -e "    ${DIM}Repeat  ${NC}  Same pattern again        ${GREEN}━━▸${NC} Cache hit (0s)"
-echo -e "    ${DIM}Danger  ${NC}  rm -rf / force push ...   ${RED}━━▸${NC} Notify + confirm"
+echo -e "    ${GREEN}◆${NC} ${DIM}Read-only${NC}  Read / Grep / Glob     ${DIM}──▸${NC} ${GREEN}Allow${NC}"
+sleep 0.05
+echo -e "    ${GREEN}◆${NC} ${DIM}Edits   ${NC}  Normal source files     ${DIM}──▸${NC} ${GREEN}Allow${NC}"
+sleep 0.05
+echo -e "    ${C2}◆${NC} ${DIM}Bash    ${NC}  All commands             ${DIM}──▸${NC} ${C2}AI assess (~7s)${NC}"
+sleep 0.05
+echo -e "    ${GREEN}◆${NC} ${DIM}Repeat  ${NC}  Same pattern again      ${DIM}──▸${NC} ${GREEN}Cache hit (0s)${NC}"
+sleep 0.05
+echo -e "    ${RED}◆${NC} ${DIM}Danger  ${NC}  rm -rf / force push     ${DIM}──▸${NC} ${RED}Notify + confirm${NC}"
 echo ""
-echo -e "  ${BOLD}Commands${NC}"
+echo -e "  ${BOLD}Quick start${NC}"
 echo ""
-echo -e "    ${CYAN}risk-guard${NC} ${DIM}help${NC}           Show all commands"
+echo -e "    ${C1}risk-guard${NC} ${DIM}help${NC}           Show all commands"
+echo -e "    ${C1}risk-guard${NC} ${DIM}stats${NC}          View statistics"
 echo ""
-echo -e "  ${YELLOW}▸ Takes effect in new Claude Code sessions${NC}"
+echo -e "  ${ACCENT}▸ Takes effect in new Claude Code sessions${NC}"
 fi
 echo ""
