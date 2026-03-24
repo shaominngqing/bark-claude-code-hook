@@ -11,9 +11,6 @@
   <a href="./README.md">English</a> | 中文
 </p>
 
-<!-- 生成 GIF: brew install vhs && vhs demo.tape -->
-<!-- <p align="center"><img src="demo.gif" alt="demo" width="800"></p> -->
-
 ## 解决什么问题
 
 同时开多个 Claude Code 窗口跑任务时，安全操作也要反复确认，打断工作流、拖慢进度。

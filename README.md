@@ -11,9 +11,6 @@
   English | <a href="./README.zh-CN.md">中文</a>
 </p>
 
-<!-- Uncomment after generating: vhs demo.tape -->
-<!-- <p align="center"><img src="demo.gif" alt="demo" width="800"></p> -->
-
 ## The Problem
 
 When running multiple Claude Code sessions in parallel, even safe operations require repeated manual confirmation, breaking your flow and slowing you down.
