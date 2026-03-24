@@ -457,8 +457,12 @@ _t() {
             cmd_test)      echo "  test <cmd>        测试命令风险等级" ;;
             cmd_cache)     echo "  cache [clear]     查看/清空缓存" ;;
             cmd_log)       echo "  log [N|clear]     查看最近 N 条日志 / 清空日志" ;;
+            cmd_update)    echo "  update            更新到最新版本" ;;
             cmd_uninstall) echo "  uninstall         完全卸载" ;;
             cmd_help)      echo "  help              显示此帮助" ;;
+            updating)      echo "正在更新 Risk Guard..." ;;
+            update_ok)     echo "✅ Risk Guard 已更新到最新版本" ;;
+            update_fail)   echo "❌ 更新失败，请检查网络连接" ;;
             *)             echo "$key" ;;
         esac
     else
@@ -493,8 +497,12 @@ _t() {
             cmd_test)      echo "  test <cmd>        Test a command's risk level" ;;
             cmd_cache)     echo "  cache [clear]     View/clear cache" ;;
             cmd_log)       echo "  log [N|clear]     View last N log entries / clear log" ;;
+            cmd_update)    echo "  update            Update to latest version" ;;
             cmd_uninstall) echo "  uninstall         Completely uninstall" ;;
             cmd_help)      echo "  help              Show this help" ;;
+            updating)      echo "Updating Risk Guard..." ;;
+            update_ok)     echo "✅ Risk Guard updated to latest version" ;;
+            update_fail)   echo "❌ Update failed, please check your network" ;;
             *)             echo "$key" ;;
         esac
     fi
@@ -648,6 +656,22 @@ uninstall_cmd() {
     rm -f "$self"
 }
 
+update_cmd() {
+    _t updating
+    local url="https://raw.githubusercontent.com/shaominngqing/Risk-Guard/main/install.sh"
+    local tmp
+    tmp=$(mktemp)
+    if curl -fsSL "$url" -o "$tmp" 2>/dev/null; then
+        bash "$tmp"
+        rm -f "$tmp"
+        _t update_ok
+    else
+        rm -f "$tmp"
+        _t update_fail
+        exit 1
+    fi
+}
+
 usage() {
     _t help_title
     echo ""
@@ -660,6 +684,7 @@ usage() {
     _t cmd_test
     _t cmd_cache
     _t cmd_log
+    _t cmd_update
     _t cmd_uninstall
     _t cmd_help
 }
@@ -672,6 +697,7 @@ case "${1:-status}" in
     test)           shift; test_command "$@" ;;
     cache)          shift; cache_cmd "$@" ;;
     log|logs)       shift; log_cmd "$@" ;;
+    update|upgrade) update_cmd ;;
     uninstall)      uninstall_cmd ;;
     help|-h|--help) usage ;;
     *)              if _is_zh; then echo "未知命令: $1"; else echo "Unknown command: $1"; fi; usage; exit 1 ;;

@@ -50,6 +50,7 @@ risk-guard toggle         # Toggle on/off
 risk-guard test <cmd>     # Test a command's risk level
 risk-guard cache [clear]  # View / clear cache
 risk-guard log [N|clear]  # View / clear logs
+risk-guard update         # Update to latest version
 risk-guard uninstall      # Completely uninstall
 ```
 

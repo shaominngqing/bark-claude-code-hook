@@ -50,6 +50,7 @@ risk-guard toggle         # 切换开关
 risk-guard test <cmd>     # 测试命令风险等级
 risk-guard cache [clear]  # 查看 / 清空缓存
 risk-guard log [N|clear]  # 查看 / 清空日志
+risk-guard update         # 更新到最新版本
 risk-guard uninstall      # 完全卸载
 ```
 
