@@ -11,6 +11,8 @@
 
 set -euo pipefail
 
+RISK_GUARD_VERSION="1.0.0"
+
 HOOKS_DIR="$HOME/.claude/hooks"
 SETTINGS="$HOME/.claude/settings.json"
 HOOK_SCRIPT="$HOOKS_DIR/risk-guard.sh"
@@ -68,7 +70,8 @@ printf "${NC}    ${DIM}│${NC}\n"
 sleep 0.1
 printf "  ${DIM}│${NC}   ${DIM}${ITALIC}"
 _type "AI-Powered Risk Assessment" 0.02
-printf "${NC}          ${DIM}│${NC}\n"
+printf "  v${RISK_GUARD_VERSION}"
+printf "${NC}    ${DIM}│${NC}\n"
 sleep 0.05
 echo -e "  ${DIM}│${NC}                                             ${DIM}│${NC}"
 echo -e "  ${DIM}╰─────────────────────────────────────────────╯${NC}"
@@ -565,6 +568,7 @@ SETTINGS="$HOME/.claude/settings.json"
 HOOK_SCRIPT="$HOME/.claude/hooks/risk-guard.sh"
 CACHE_DIR="$HOME/.claude/hooks/cache"
 LOG_FILE="$HOME/.claude/hooks/risk-guard.log"
+VERSION="__RISK_GUARD_VERSION__"
 
 NC='\033[0m'; BOLD='\033[1m'; DIM='\033[2m'; ITALIC='\033[3m'
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'
@@ -655,6 +659,7 @@ _t() {
             stats_empty)   echo "📊 暂无统计数据（日志为空）" ;;
             cmd_update)    echo "  update            更新到最新版本" ;;
             cmd_uninstall) echo "  uninstall         完全卸载" ;;
+            cmd_version)   echo "  version           显示版本号" ;;
             cmd_help)      echo "  help              显示此帮助" ;;
             updating)      echo "正在更新 Risk Guard..." ;;
             update_ok)     echo "✅ Risk Guard 已更新到最新版本" ;;
@@ -701,6 +706,7 @@ _t() {
             stats_empty)   echo "📊 No statistics yet (log is empty)" ;;
             cmd_update)    echo "  update            Update to latest version" ;;
             cmd_uninstall) echo "  uninstall         Completely uninstall" ;;
+            cmd_version)   echo "  version           Show version" ;;
             cmd_help)      echo "  help              Show this help" ;;
             updating)      echo "Updating Risk Guard..." ;;
             update_ok)     echo "✅ Risk Guard updated to latest version" ;;
@@ -1020,14 +1026,24 @@ rules_cmd() {
 }
 
 update_cmd() {
+    local old_ver="$VERSION"
     _t updating
     local url="https://raw.githubusercontent.com/shaominngqing/Risk-Guard/main/install.sh"
     local tmp
     tmp=$(mktemp)
     if curl -fsSL "$url" -o "$tmp" 2>/dev/null; then
+        # Extract new version before running
+        local new_ver
+        new_ver=$(grep '^RISK_GUARD_VERSION=' "$tmp" | head -1 | cut -d'"' -f2)
         bash "$tmp"
         rm -f "$tmp"
-        _t update_ok
+        if [ "$old_ver" = "$new_ver" ]; then
+            if _is_zh; then echo -e "\n  ${GREEN}●${NC} 已是最新版本 ${DIM}v${old_ver}${NC}\n"
+            else echo -e "\n  ${GREEN}●${NC} Already up to date ${DIM}v${old_ver}${NC}\n"; fi
+        else
+            if _is_zh; then echo -e "\n  ${GREEN}●${NC} 已更新 ${DIM}v${old_ver}${NC} → ${C1}${BOLD}v${new_ver}${NC}\n"
+            else echo -e "\n  ${GREEN}●${NC} Updated ${DIM}v${old_ver}${NC} → ${C1}${BOLD}v${new_ver}${NC}\n"; fi
+        fi
     else
         rm -f "$tmp"
         _t update_fail
@@ -1054,6 +1070,7 @@ usage() {
     _t cmd_rules
     _t cmd_update
     _t cmd_uninstall
+    _t cmd_version
     _t cmd_help
     echo ""
 }
@@ -1070,10 +1087,13 @@ case "${1:-status}" in
     rules|rule)     shift; rules_cmd "$@" ;;
     update|upgrade) update_cmd ;;
     uninstall)      uninstall_cmd ;;
+    version|-V|--version) echo -e "\n  $(_gradient "Risk Guard" 39 6) ${DIM}v${VERSION}${NC}\n" ;;
     help|-h|--help) usage ;;
     *)              if _is_zh; then echo "未知命令: $1"; else echo "Unknown command: $1"; fi; usage; exit 1 ;;
 esac
 CTL__EOF
+# Inject version into ctl script (heredoc is single-quoted so no expansion)
+sed -i.bak "s/__RISK_GUARD_VERSION__/$RISK_GUARD_VERSION/" "$CTL_SCRIPT" && rm -f "$CTL_SCRIPT.bak"
 chmod +x "$CTL_SCRIPT"
 if is_zh; then ok "控制面板      risk-guard-ctl.sh"
 else ok "Control panel  risk-guard-ctl.sh"; fi
