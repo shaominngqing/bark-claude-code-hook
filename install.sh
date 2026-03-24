@@ -52,7 +52,16 @@ step()  { echo -e "\n  ${C1}${BOLD}▸${NC} ${BOLD}$1${NC}"; }
 # i18n: detect locale
 is_zh() { [[ "${LANG:-}${LC_ALL:-}" =~ zh ]]; }
 
-# --- Animated ASCII Art banner with gradient ---
+# --- Gradient text helpers ---
+_gradient() {
+    local text="$1" start="${2:-39}" count="${3:-6}"
+    for ((i=0; i<${#text}; i++)); do
+        local c=$(( start + (i % count) ))
+        printf "\033[1;38;5;${c}m%s" "${text:$i:1}"
+    done
+    printf "${NC}"
+}
+
 _gradient_line() {
     local line="$1" start="${2:-39}" count="${3:-6}"
     printf "  "
