@@ -1061,23 +1061,23 @@ update_cmd() {
     local url="https://raw.githubusercontent.com/shaominngqing/Bark/main/install.sh"
     local tmp
     tmp=$(mktemp)
-    if curl -fsSL "$url" -o "$tmp" 2>/dev/null; then
-        # Extract new version before running
-        local new_ver
-        new_ver=$(grep '^BARK_VERSION=' "$tmp" | head -1 | cut -d'"' -f2)
-        bash "$tmp"
-        rm -f "$tmp"
-        if [ "$old_ver" = "$new_ver" ]; then
-            if _is_zh; then echo -e "\n  ${GREEN}●${NC} 已是最新版本 ${DIM}v${old_ver}${NC}\n"
-            else echo -e "\n  ${GREEN}●${NC} Already up to date ${DIM}v${old_ver}${NC}\n"; fi
-        else
-            if _is_zh; then echo -e "\n  ${GREEN}●${NC} 已更新 ${DIM}v${old_ver}${NC} → ${C1}${BOLD}v${new_ver}${NC}\n"
-            else echo -e "\n  ${GREEN}●${NC} Updated ${DIM}v${old_ver}${NC} → ${C1}${BOLD}v${new_ver}${NC}\n"; fi
-        fi
-    else
+    if ! curl -fsSL "$url" -o "$tmp" 2>/dev/null; then
         rm -f "$tmp"
         _t update_fail
         exit 1
+    fi
+    local new_ver
+    new_ver=$(grep '^BARK_VERSION=' "$tmp" | head -1 | cut -d'"' -f2)
+    if [ "$old_ver" = "$new_ver" ]; then
+        rm -f "$tmp"
+        if _is_zh; then echo -e "\n  ${GREEN}●${NC} 已是最新版本 ${DIM}v${old_ver}${NC}\n"
+        else echo -e "\n  ${GREEN}●${NC} Already up to date ${DIM}v${old_ver}${NC}\n"; fi
+    else
+        bash "$tmp"
+        rm -f "$tmp"
+        if _is_zh; then echo -e "\n  ${GREEN}●${NC} 已更新 ${DIM}v${old_ver}${NC} → ${C1}${BOLD}v${new_ver}${NC}\n"
+        else echo -e "\n  ${GREEN}●${NC} Updated ${DIM}v${old_ver}${NC} → ${C1}${BOLD}v${new_ver}${NC}\n"; fi
+        exit 0
     fi
 }
 
