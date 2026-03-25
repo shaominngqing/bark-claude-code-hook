@@ -134,6 +134,33 @@ block: rm -rf /
 
 **设计哲学**：不写硬编码的 Bash 规则。AI 理解命令语义，比正则匹配更准确。缓存保证同类命令第二次零延迟。
 
+## Bark 与其他权限模式的对比
+
+Claude Code 内置了多种权限模式，但各有局限：
+
+| 模式 | 命令 | 行为 | 局限 |
+|---|---|---|---|
+| **默认模式** | `claude` | 每个操作都要确认 | 不断被打断 |
+| **接受编辑** | `claude -y` | 自动放行文件编辑，Bash 仍需确认 | Bash 命令仍被阻断 |
+| **Auto Mode** | `claude --permission-mode auto` | 基于规则的分类器（仅 Team 计划） | 无 AI 理解、无缓存、不可自定义 |
+| **跳过权限** | `claude --dangerously-skip-permissions` | 放行一切 | 零安全性 — 危险 |
+| **Bark** 🐕 | `claude`（安装 Bark 后） | AI 驱动的语义评估 | — |
+
+### 为什么选择 Bark？
+
+| 特性 | Auto Mode | Bark |
+|---|---|---|
+| **可用性** | 仅 Team 计划 | 免费开源 |
+| **评估方式** | 静态规则匹配 | AI 语义理解 |
+| **自定义规则** | 不支持 | `bark.conf` — allow/notify/block |
+| **缓存** | 无 | 24h TTL，同类命令 0ms |
+| **统计面板** | 无 | `bark stats` — 完整仪表板 |
+| **日志** | 无 | `bark log` — 彩色、可筛选 |
+| **系统通知** | 无 | macOS/Linux 系统通知 |
+| **离线测试** | 不支持 | `bark test <cmd>` |
+
+Bark 填补了"每次手动确认"和"跳过所有安全检查"之间的空白。它理解命令**在做什么**，而不只是**长什么样**。
+
 ## 环境要求
 
 - 已安装 [Claude Code](https://docs.anthropic.com/en/docs/claude-code)

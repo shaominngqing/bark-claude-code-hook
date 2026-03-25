@@ -134,6 +134,33 @@ block: rm -rf /
 
 **Design philosophy**: No hardcoded Bash rules. AI understands command semantics better than regex matching. Cache ensures zero latency for repeated command patterns.
 
+## Bark vs Other Permission Modes
+
+Claude Code offers several built-in permission modes, but each has trade-offs:
+
+| Mode | Command | What it does | Limitation |
+|---|---|---|---|
+| **Default** | `claude` | Asks permission for every tool call | Constant interruptions |
+| **Accept Edits** | `claude -y` | Auto-allows file edits, still asks for Bash | Bash commands still blocked |
+| **Auto Mode** | `claude --permission-mode auto` | Rule-based classifier (Team plan only) | No AI understanding, no caching, not customizable |
+| **Skip Permissions** | `claude --dangerously-skip-permissions` | Allows everything | Zero safety — dangerous |
+| **Bark** 🐕 | `claude` (with Bark installed) | AI-powered semantic assessment | — |
+
+### Why Bark?
+
+| Feature | Auto Mode | Bark |
+|---|---|---|
+| **Availability** | Team plan only | Free & open source |
+| **Assessment** | Static rule matching | AI semantic understanding |
+| **Custom rules** | Not supported | `bark.conf` — allow/notify/block |
+| **Caching** | None | 24h TTL, same pattern = 0ms |
+| **Statistics** | None | `bark stats` — full dashboard |
+| **Logs** | None | `bark log` — colored, filterable |
+| **Notifications** | None | macOS/Linux system notifications |
+| **Offline testing** | Not possible | `bark test <cmd>` |
+
+Bark fills the gap between "approve everything manually" and "skip all safety checks". It understands *what* commands do, not just *what they look like*.
+
 ## Requirements
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed
