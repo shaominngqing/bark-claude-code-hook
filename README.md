@@ -12,10 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/shaominngqing/Bark/raw/main/assets/bark-demo.mp4">
-    <img src="assets/banner.svg" alt="Watch Demo Video" width="600"><br>
-    <sub>▶ Click to watch the 56s demo video</sub>
-  </a>
+  <video src="https://github.com/shaominngqing/Bark/raw/main/assets/bark-demo.mp4" width="800" controls autoplay muted loop></video>
 </p>
 
 ## The Problem

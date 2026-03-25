@@ -12,10 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/shaominngqing/Bark/raw/main/assets/bark-demo.mp4">
-    <img src="assets/banner.svg" alt="观看演示视频" width="600"><br>
-    <sub>▶ 点击观看 56 秒演示视频</sub>
-  </a>
+  <video src="https://github.com/shaominngqing/Bark/raw/main/assets/bark-demo.mp4" width="800" controls autoplay muted loop></video>
 </p>
 
 ## 解决什么问题
