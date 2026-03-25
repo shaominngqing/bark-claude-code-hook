@@ -137,9 +137,6 @@ _VERBOSE="${BARK_VERBOSE:-0}"
 _DRY_RUN="${BARK_DRY_RUN:-0}"
 _dbg() { [ "$_VERBOSE" = "1" ] && echo -e "\033[2m  [debug] $*\033[0m" >&2 || true; }
 
-# Capture start time for verbose elapsed display
-_BARK_START_MS=$(perl -MTime::HiRes=time -e 'printf "%.0f\n", time*1000' 2>/dev/null || echo "0")
-
 INPUT=$(cat)
 
 TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
@@ -237,42 +234,6 @@ emit() {
         detail="-"
     fi
     log_entry "$level_tag" "${source:-???}" "$TOOL_NAME" "$detail" "$reason" &
-
-    # Verbose: real-time assessment display on stderr
-    if [ "$_VERBOSE" = "1" ]; then
-        local _v_icon _v_color
-        local _nc='\033[0m' _dim='\033[2m'
-        local _grn='\033[0;32m' _ylw='\033[1;33m' _red='\033[0;31m'
-        case "$level" in
-            0) _v_icon="✓" ; _v_color="$_grn" ;;
-            1) _v_icon="⚠" ; _v_color="$_ylw" ;;
-            2) _v_icon="✗" ; _v_color="$_red" ;;
-        esac
-        # Elapsed time
-        local _v_elapsed=""
-        if [ -n "${_BARK_START_MS:-}" ]; then
-            local _v_now_ms
-            _v_now_ms=$(perl -MTime::HiRes=time -e 'printf "%.0f\n", time*1000' 2>/dev/null || echo "0")
-            if [ "$_v_now_ms" -gt 0 ] && [ "$_BARK_START_MS" -gt 0 ]; then
-                local _v_ms=$((_v_now_ms - _BARK_START_MS))
-                if [ "$_v_ms" -lt 1000 ]; then
-                    _v_elapsed="${_v_ms}ms"
-                else
-                    _v_elapsed="$((_v_ms / 1000)).$((_v_ms % 1000 / 100))s"
-                fi
-            fi
-        fi
-        # Short detail
-        local _v_detail="$TOOL_NAME"
-        if [ "$TOOL_NAME" = "Bash" ] && [ -n "$COMMAND" ]; then
-            _v_detail="Bash: $(echo "$COMMAND" | head -c 40)"
-        elif [ -n "$FILE_PATH" ]; then
-            _v_detail="$TOOL_NAME $(basename "$FILE_PATH")"
-        fi
-        printf "  ${_dim}┃${_nc} ${_v_color}${_v_icon}${_nc} %-45s ${_dim}${level_tag}${_nc} ${_dim}(${source:-?})${_nc}" "$_v_detail" >&2
-        [ -n "$_v_elapsed" ] && printf " ${_dim}%s${_nc}" "$_v_elapsed" >&2
-        printf "\n" >&2
-    fi
 }
 
 # =============================================================================
