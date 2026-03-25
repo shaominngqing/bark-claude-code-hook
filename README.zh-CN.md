@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <video src="https://github.com/shaominngqing/Bark/raw/main/assets/bark-demo.mp4" width="800" controls autoplay muted loop></video>
+  <video src="https://github.com/user-attachments/assets/dc618b98-f39a-4aee-b72f-e60b842c2910" width="800" controls autoplay muted loop></video>
 </p>
 
 ## 解决什么问题
