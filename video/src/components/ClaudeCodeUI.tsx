@@ -1,10 +1,35 @@
 import React, { CSSProperties } from 'react';
 import { useCurrentFrame, useVideoConfig, spring, interpolate } from 'remotion';
-import { COLORS, FONT_MONO } from '../theme';
+import { COLORS } from '../theme';
+
+/**
+ * Pixel-perfect Claude Code UI based on official website screenshot.
+ *
+ * Key details from screenshot:
+ * - Background: dark gray #1e1e1e (NOT pure black)
+ * - Title bar: darker gray #2a2a2a, dots are GRAY (unfocused window), no title text
+ * - Logo: red pixel art ~48px, larger than before
+ * - Header: "Claude Code" WHITE (not green!) + "v2.1.76" gray
+ *           "Opus 4.6 (1M Context) · Claude Enterprise" gray
+ *           "/Users/johnnie/taskflow" gray
+ * - User input: ">" prompt, entire line has gray background highlight
+ * - Claude response: "●" white bullet + white text
+ * - Tool call: "●" GREEN bullet + GREEN bold "ToolName(args)"
+ * - Tool result: "L Done (17 tool uses · 38.0k tokens · 28s)" — capital L not └
+ * - Thinking: "* Clauding... (esc to interrupt)" — star is orange
+ * - Font: Menlo, ~14-15px, line-height ~1.8
+ * - Generous spacing between elements
+ */
 
 const MONO = "'Menlo', 'SF Mono', 'Monaco', monospace";
+const BG = '#1e1e1e';
+const TITLE_BAR_BG = '#2a2a2a';
+const TEXT = '#e0e0e0';
+const DIM = '#808080';
+const TOOL_GREEN = '#4ec970';
+const INPUT_BG = '#2a2d30';
 
-// ─────────── Terminal Window Shell ───────────
+// ─────────── Terminal Window ───────────
 interface ClaudeTerminalProps {
   children: React.ReactNode;
   width?: number;
@@ -20,7 +45,6 @@ export const ClaudeTerminal: React.FC<ClaudeTerminalProps> = ({
   height = 780,
   style,
   enterDelay = 0,
-  title = 'Fix login bug and push changes',
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -32,50 +56,40 @@ export const ClaudeTerminal: React.FC<ClaudeTerminalProps> = ({
   }) : 1;
 
   const opacity = interpolate(entered, [0, 1], [0, 1]);
-  const scale = interpolate(entered, [0, 1], [0.95, 1]);
-  const translateY = interpolate(entered, [0, 1], [20, 0]);
+  const scl = interpolate(entered, [0, 1], [0.95, 1]);
+  const ty = interpolate(entered, [0, 1], [20, 0]);
 
   return (
-    <div
-      style={{
-        width, height, borderRadius: 10, overflow: 'hidden',
-        display: 'flex', flexDirection: 'column',
-        opacity, transform: `translateY(${translateY}px) scale(${scale})`,
-        boxShadow: '0 22px 70px 4px rgba(0,0,0,0.56), 0 0 0 0.5px rgba(0,0,0,0.3)',
-        ...style,
-      }}
-    >
-      {/* Title bar */}
+    <div style={{
+      width, height, borderRadius: 10, overflow: 'hidden',
+      display: 'flex', flexDirection: 'column',
+      opacity, transform: `translateY(${ty}px) scale(${scl})`,
+      boxShadow: '0 22px 70px 4px rgba(0,0,0,0.56), 0 0 0 0.5px rgba(0,0,0,0.3)',
+      ...style,
+    }}>
+      {/* Title bar — gray dots (unfocused), no text */}
       <div style={{
-        height: 32, background: '#303030',
-        display: 'flex', alignItems: 'center', paddingLeft: 12, paddingRight: 12,
-        flexShrink: 0, position: 'relative', borderBottom: '1px solid #1a1a1a',
+        height: 36, background: TITLE_BAR_BG,
+        display: 'flex', alignItems: 'center', paddingLeft: 14,
+        flexShrink: 0, borderBottom: `1px solid #1a1a1a`,
       }}>
-        <div style={{ display: 'flex', gap: 8, zIndex: 1 }}>
-          {[
-            { bg: '#ff5f57', border: '#e0443e' },
-            { bg: '#febc2e', border: '#dea123' },
-            { bg: '#28c840', border: '#1aab29' },
-          ].map((d, i) => (
-            <div key={i} style={{
-              width: 12, height: 12, borderRadius: '50%',
-              background: d.bg, border: `0.5px solid ${d.border}`,
-            }} />
-          ))}
-        </div>
-        <div style={{
-          position: 'absolute', left: 0, right: 0, textAlign: 'center',
-          color: '#aaa', fontSize: 13, fontFamily: MONO, fontWeight: 500,
-        }}>
-          <span style={{ color: '#999' }}>✱</span> {title}
-        </div>
+        {[
+          { bg: '#ff5f57', border: '#e0443e' },
+          { bg: '#febc2e', border: '#dea123' },
+          { bg: '#28c840', border: '#1aab29' },
+        ].map((d, i) => (
+          <div key={i} style={{
+            width: 12, height: 12, borderRadius: '50%',
+            background: d.bg, marginRight: 8, border: `0.5px solid ${d.border}`,
+          }} />
+        ))}
       </div>
 
-      {/* Terminal body */}
+      {/* Body */}
       <div style={{
-        flex: 1, background: '#000000', padding: '8px 14px',
-        fontFamily: MONO, fontSize: 14, lineHeight: 1.5, color: '#fff',
-        overflow: 'hidden',
+        flex: 1, background: BG, padding: '16px 24px',
+        fontFamily: MONO, fontSize: 15, lineHeight: 1.85, color: TEXT,
+        overflow: 'hidden', position: 'relative',
       }}>
         {children}
       </div>
@@ -83,28 +97,80 @@ export const ClaudeTerminal: React.FC<ClaudeTerminalProps> = ({
   );
 };
 
-// ─────────── Input Box (inline, part of content flow) ───────────
-// Appears right after the last message. User types here.
-// After typing completes (submitted), it disappears and the text becomes a message above.
+// ─────────── Startup Welcome Card ───────────
+// CSS border card layout, only logo uses Unicode text
+export const ClaudeCodeHeader: React.FC<{ delay?: number }> = ({ delay = 0 }) => {
+  const frame = useCurrentFrame();
+  if (frame < delay) return null;
+
+  const BCOLOR = '#444';
+  const G = '#3fb950';
+  const R = '#d4634a';
+
+  return (
+    <div style={{
+      border: `1px solid ${BCOLOR}`, borderRadius: 8,
+      fontFamily: MONO, fontSize: 13, marginBottom: 14,
+      overflow: 'hidden',
+    }}>
+      {/* Title bar */}
+      <div style={{
+        borderBottom: `1px solid ${BCOLOR}`, padding: '6px 14px',
+        color: TEXT, fontSize: 13,
+      }}>
+        Claude Code v2.1.81
+      </div>
+
+      {/* Two-column body */}
+      <div style={{ display: 'flex', minHeight: 140 }}>
+        {/* Left: welcome + logo + info */}
+        <div style={{
+          flex: '0 0 48%', borderRight: `1px solid ${BCOLOR}`,
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'center', padding: '12px 16px', gap: 6,
+        }}>
+          <div style={{ color: G, fontWeight: 700, fontSize: 15 }}>Welcome back!</div>
+          {/* Unicode pixel logo */}
+          <div style={{
+            color: R, fontFamily: MONO, fontSize: 22,
+            lineHeight: 1, margin: '8px 0', whiteSpace: 'pre',
+          }}>{' ▐▛███▜▌\n▝▜█████▛▘\n  ▘▘ ▝▝'}</div>
+          <div style={{ color: DIM, fontSize: 11, textAlign: 'center' }}>
+            claude-opus-4-6 · API Usage Billing
+          </div>
+          <div style={{ color: DIM, fontSize: 11 }}>~/project</div>
+        </div>
+
+        {/* Right: tips + recent */}
+        <div style={{ flex: 1, padding: '12px 16px' }}>
+          <div style={{ color: G, fontSize: 13, marginBottom: 4 }}>Tips for getting started</div>
+          <div style={{ color: TEXT, fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>
+            Run /init to create a CLAUDE.md file with instructions for Claude
+          </div>
+          <div style={{ height: 1, background: BCOLOR, marginBottom: 12 }} />
+          <div style={{ color: G, fontSize: 13, marginBottom: 4 }}>Recent activity</div>
+          <div style={{ color: DIM, fontSize: 12 }}>No recent activity</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─────────── Input Box (inline) ───────────
 interface InputBoxProps {
   text: string;
   delay?: number;
   typingSpeed?: number;
-  /** Frame when "enter" is pressed — text clears, box stays empty */
   submitFrame?: number;
 }
 
 export const InputBox: React.FC<InputBoxProps> = ({
-  text,
-  delay = 0,
-  typingSpeed = 1.5,
-  submitFrame,
+  text, delay = 0, typingSpeed = 1.5, submitFrame,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   if (frame < delay) return null;
 
-  // After submit: box is empty, just show cursor
   const submitted = submitFrame != null && frame >= submitFrame;
 
   let chars = 0;
@@ -124,34 +190,29 @@ export const InputBox: React.FC<InputBoxProps> = ({
   const cursorOn = Math.floor(frame / Math.round(fps * 0.53)) % 2 === 0;
 
   return (
-    <div style={{ marginTop: 4 }}>
-      {/* Top separator */}
+    <div style={{ marginTop: 8 }}>
+      {/* Top separator line */}
       <div style={{ height: 1, background: '#333', marginBottom: 8 }} />
-      {/* Input line */}
-      <div style={{ display: 'flex', alignItems: 'center', minHeight: 22 }}>
-        <span style={{ color: '#555', marginRight: 6 }}>›</span>
-        <span style={{ color: '#888', fontWeight: 600 }}>❯ </span>
+      {/* Input line: > text | */}
+      <div style={{ display: 'flex', alignItems: 'center', minHeight: 22, paddingLeft: 2 }}>
+        <span style={{ color: DIM, marginRight: 8, fontWeight: 600 }}>&gt;</span>
         {!submitted && (
-          <span style={{ color: '#fff' }}>{text.slice(0, chars)}</span>
+          <span style={{ color: TEXT }}>{text.slice(0, chars)}</span>
         )}
         <span style={{
-          display: 'inline-block', width: 2, height: 16,
-          background: '#fff', marginLeft: 1, verticalAlign: 'text-bottom',
+          display: 'inline-block', width: 2, height: 17,
+          background: TEXT, marginLeft: 1,
           opacity: cursorOn ? 1 : 0,
         }} />
       </div>
-      {/* Bottom separator */}
+      {/* Bottom separator line */}
       <div style={{ height: 1, background: '#333', marginTop: 8 }} />
-      {/* Hint */}
-      <div style={{ color: '#666', fontSize: 12, marginTop: 4 }}>
-        <span style={{ color: '#888' }}>?</span> for shortcuts
-      </div>
     </div>
   );
 };
 
-// ─────────── Submitted User Message "❯ text" ───────────
-// After the user presses enter, the input becomes a regular message in the flow.
+// ─────────── Submitted User Message ───────────
+// After enter: shows as "> text" with gray background
 export const UserMessage: React.FC<{
   text: string;
   delay?: number;
@@ -160,44 +221,14 @@ export const UserMessage: React.FC<{
   if (frame < delay) return null;
 
   return (
-    <ClaudeActivity delay={delay}>
-      <span style={{ color: '#888', fontWeight: 600 }}>❯ </span>
-      <span style={{ color: '#fff' }}>{text}</span>
+    <ClaudeActivity delay={delay} style={{ marginBottom: 4 }}>
+      <span style={{ color: DIM, fontWeight: 600 }}>&gt; </span>
+      <span style={{ color: TEXT }}>{text}</span>
     </ClaudeActivity>
   );
 };
 
-// ─────────── Claude Code Startup Header ───────────
-export const ClaudeCodeHeader: React.FC<{ delay?: number }> = ({ delay = 0 }) => {
-  const frame = useCurrentFrame();
-  if (frame < delay) return null;
-
-  return (
-    <div style={{ marginBottom: 8 }}>
-      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 8 }}>
-        <div style={{
-          width: 34, height: 34, borderRadius: 3,
-          background: '#e74c3c', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', fontSize: 18, flexShrink: 0, marginTop: 2,
-          color: '#fff', fontWeight: 700,
-        }}>
-          {'>_'}
-        </div>
-        <div>
-          <div>
-            <span style={{ color: '#3fb950', fontWeight: 600 }}>Claude Code</span>
-            <span style={{ color: '#888' }}> v2.1.81</span>
-          </div>
-          <div style={{ color: '#666', fontSize: 12 }}>
-            claude-sonnet-4-6 · API · ~/project
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ─────────── Claude's text "● text" ───────────
+// ─────────── Claude Response "● text" ───────────
 export const ClaudeResponse: React.FC<{
   text: string;
   delay?: number;
@@ -212,14 +243,15 @@ export const ClaudeResponse: React.FC<{
   const wordsToShow = Math.min(Math.floor(elapsed * wordsPerFrame), words.length);
 
   return (
-    <ClaudeActivity delay={delay} style={style}>
-      <span style={{ color: '#fff' }}>● </span>
-      <span style={{ color: '#ddd' }}>{words.slice(0, wordsToShow).join(' ')}</span>
+    <ClaudeActivity delay={delay} style={{ marginTop: 8, ...style }}>
+      <span style={{ color: TEXT }}>● </span>
+      <span style={{ color: TEXT }}>{words.slice(0, wordsToShow).join(' ')}</span>
     </ClaudeActivity>
   );
 };
 
 // ─────────── Tool Call "● ToolName(args)" ───────────
+// Green dot + green bold name — matches screenshot exactly
 export const ToolCall: React.FC<{
   tool: string;
   args: string;
@@ -230,28 +262,50 @@ export const ToolCall: React.FC<{
   if (frame < delay) return null;
 
   return (
-    <ClaudeActivity delay={delay} style={{ marginTop: 2, marginBottom: 2, ...style }}>
-      <span style={{ color: '#3fb950' }}>● </span>
-      <span style={{ color: '#3fb950', fontWeight: 600 }}>{tool}</span>
-      <span style={{ color: '#888' }}>({args})</span>
+    <ClaudeActivity delay={delay} style={{ marginTop: 6, ...style }}>
+      <span style={{ color: TOOL_GREEN }}>● </span>
+      <span style={{ color: TOOL_GREEN, fontWeight: 700 }}>{tool}</span>
+      <span style={{ color: DIM }}>({args})</span>
     </ClaudeActivity>
   );
 };
 
-// ─────────── Tool Result "└ result" ───────────
+// ─────────── Tool Result "L Done (...)" ───────────
+// Capital L (not └), indented — matches screenshot
 export const ToolResult: React.FC<{
   text: string;
   delay?: number;
   color?: string;
   style?: CSSProperties;
-}> = ({ text, delay = 0, color = '#888', style }) => {
+}> = ({ text, delay = 0, color = DIM, style }) => {
   const frame = useCurrentFrame();
   if (frame < delay) return null;
 
   return (
-    <ClaudeActivity delay={delay} style={{ paddingLeft: 16, ...style }}>
-      <span style={{ color: '#555' }}>└ </span>
+    <ClaudeActivity delay={delay} style={{ paddingLeft: 18, ...style }}>
+      <span style={{ color: DIM }}>L </span>
       <span style={{ color }}>{text}</span>
+    </ClaudeActivity>
+  );
+};
+
+// ─────────── Thinking "* Clauding... (esc to interrupt)" ───────────
+export const ClaudeThinking: React.FC<{
+  delay?: number;
+  endFrame?: number;
+}> = ({ delay = 0, endFrame }) => {
+  const frame = useCurrentFrame();
+  if (frame < delay) return null;
+  if (endFrame && frame >= endFrame) return null;
+
+  // Dots animation
+  const dots = '.'.repeat((Math.floor((frame - delay) / 8) % 3) + 1);
+
+  return (
+    <ClaudeActivity delay={delay} style={{ marginTop: 6 }}>
+      <span style={{ color: '#c0884a' }}>* </span>
+      <span style={{ color: '#c0884a' }}>Clauding{dots}</span>
+      <span style={{ color: DIM }}> (esc to interrupt)</span>
     </ClaudeActivity>
   );
 };
@@ -284,10 +338,10 @@ export const BarkResult: React.FC<{
     <span style={{
       opacity, transform: `translateX(${translateX}px)`,
       display: 'inline-flex', alignItems: 'center', gap: 4,
-      fontSize: 12, marginLeft: 12,
+      fontSize: 13, marginLeft: 12,
     }}>
       <span style={{ color: cfg.fg }}>{cfg.icon} [{cfg.label}]</span>
-      <span style={{ color: '#888' }}>{text}</span>
+      <span style={{ color: DIM }}>{text}</span>
       {cached && <span style={{ color: '#555' }}>(cached)</span>}
     </span>
   );
@@ -317,6 +371,26 @@ export const ClaudeActivity: React.FC<{
   );
 };
 
+// ─────────── Spinner (for Bark AI assessment) ───────────
+export const Spinner: React.FC<{
+  text?: string;
+  startFrame?: number;
+}> = ({ text = 'AI assessing...', startFrame = 0 }) => {
+  const frame = useCurrentFrame();
+  const elapsed = frame - startFrame;
+  if (elapsed < 0) return null;
+
+  const FRAMES = ['▸▹▹▹▹', '▹▸▹▹▹', '▹▹▸▹▹', '▹▹▹▸▹', '▹▹▹▹▸'];
+  const idx = Math.floor(elapsed / 2.4) % FRAMES.length;
+
+  return (
+    <span style={{ fontFamily: MONO, fontSize: 14 }}>
+      <span style={{ color: TOOL_GREEN, letterSpacing: 1 }}>{FRAMES[idx]}</span>
+      <span style={{ color: DIM, marginLeft: 8 }}>{text}</span>
+    </span>
+  );
+};
+
 // ─────────── Shell Prompt (for bark CLI scenes) ───────────
 export const ShellPrompt: React.FC<{
   command: string;
@@ -343,13 +417,13 @@ export const ShellPrompt: React.FC<{
 
   return (
     <div style={{ marginBottom: 6 }}>
-      <span style={{ color: '#3fb950' }}>❯❯</span>
+      <span style={{ color: TOOL_GREEN }}>❯❯</span>
       <span style={{ color: '#e5c07b' }}> ~ </span>
-      <span style={{ color: '#fff' }}>{command.slice(0, chars)}</span>
+      <span style={{ color: TEXT }}>{command.slice(0, chars)}</span>
       {(!done || cursorOn) && (
         <span style={{
-          display: 'inline-block', width: 7, height: 15,
-          background: '#fff', verticalAlign: 'text-bottom', marginLeft: 1,
+          display: 'inline-block', width: 2, height: 17,
+          background: TEXT, marginLeft: 1,
           opacity: !done ? 1 : cursorOn ? 0.7 : 0,
         }} />
       )}

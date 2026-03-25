@@ -2,8 +2,7 @@ import React, { CSSProperties } from 'react';
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, spring } from 'remotion';
 import { MacDesktop } from '../components/MacDesktop';
 import { Transition3D } from '../components/Transition3D';
-import { ClaudeTerminal, ClaudeCodeHeader, InputBox, UserMessage, ClaudeResponse, ToolCall, BarkResult, ClaudeActivity } from '../components/ClaudeCodeUI';
-import { Spinner } from '../components/Spinner';
+import { ClaudeTerminal, ClaudeCodeHeader, InputBox, UserMessage, ClaudeResponse, ToolCall, BarkResult, ClaudeActivity, Spinner } from '../components/ClaudeCodeUI';
 import { MacNotification } from '../components/MacNotification';
 import { Camera, CameraKeyframe, cameraWithNotification } from '../components/Camera';
 import { COLORS, SHADOWS, SCENE_DURATIONS, FONT_MONO } from '../theme';
@@ -135,6 +134,28 @@ export const S03_Workflow: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
+  // Auto-scroll: estimate content height per phase, scroll up when exceeding ~620px
+  // Welcome card ~180px, each line ~28px, each phase adds ~3-4 lines
+  const LINE = 28;
+  const VISIBLE = 620;
+  let contentHeight = 180; // welcome card
+  if (frame >= P1_SUBMIT) contentHeight += LINE; // user message
+  if (frame >= P1_RESPONSE) contentHeight += LINE * 2; // response text
+  P1_TOOLS.forEach(t => { if (frame >= t.f) contentHeight += LINE; });
+  if (frame >= P2_RESPONSE) contentHeight += LINE * 2;
+  if (frame >= P2_EDIT) contentHeight += LINE;
+  if (frame >= P2_WRITE) contentHeight += LINE;
+  if (frame >= P3_RESPONSE) contentHeight += LINE * 2;
+  if (frame >= P3_BASH) contentHeight += LINE;
+  if (frame >= P4_RESPONSE) contentHeight += LINE * 2;
+  if (frame >= P4_BASH) contentHeight += LINE;
+  if (frame >= P5_RESPONSE) contentHeight += LINE * 2;
+  if (frame >= P5_BASH) contentHeight += LINE;
+  if (frame >= P5_ALERT + 12) contentHeight += LINE * 4; // alert box
+  if (frame >= P5_CONFIRM) contentHeight += LINE * 2;
+  contentHeight += LINE * 3; // input box
+  const scrollY = Math.min(0, VISIBLE - contentHeight);
+
   // Screen shake for high risk
   const shake = screenShake(frame, P5_ALERT, 8, 20);
 
@@ -212,6 +233,11 @@ export const S03_Workflow: React.FC = () => {
             ? `translate(${shake.x}px, ${shake.y}px)` : undefined,
         }}>
           <ClaudeTerminal width={1200} height={720} enterDelay={3}>
+            {/* Content wrapper — scrolls up as content grows */}
+            <div style={{
+              transform: `translateY(${scrollY}px)`,
+              transition: 'transform 0.3s ease-out',
+            }}>
             {/* ═══════ Phase 1: Read-only ═══════ */}
             <ClaudeCodeHeader delay={P1_HEADER} />
 
@@ -358,6 +384,7 @@ export const S03_Workflow: React.FC = () => {
               typingSpeed={2.0}
               submitFrame={P1_SUBMIT}
             />
+            </div>{/* end scroll wrapper */}
           </ClaudeTerminal>
         </AbsoluteFill>
 
