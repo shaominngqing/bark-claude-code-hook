@@ -909,14 +909,22 @@ log_cmd() {
             if _is_zh; then printf "  "; _gradient "最近 ${n} 条日志" 39 6; echo ""
             else printf "  "; _gradient "Last ${n} entries" 39 6; echo ""; fi
             echo ""
+            # Get terminal width, truncate long lines
+            local _cols=${COLUMNS:-100}
+            local _max=$((_cols - 8))  # account for indent + ▎
             tail -n "$n" "$LOG_FILE" | while IFS= read -r line; do
-                # Colorize log lines based on level
+                # Truncate long lines
+                local display_line="$line"
+                if [ ${#display_line} -gt $_max ]; then
+                    display_line="${display_line:0:$_max}…"
+                fi
+                # Colorize based on level
                 if echo "$line" | grep -q 'HIGH'; then
-                    echo -e "    ${RED}▎${NC}${DIM}${line}${NC}"
+                    echo -e "    ${RED}▎${NC}${DIM}${display_line}${NC}"
                 elif echo "$line" | grep -q 'MED '; then
-                    echo -e "    ${YELLOW}▎${NC}${DIM}${line}${NC}"
+                    echo -e "    ${YELLOW}▎${NC}${DIM}${display_line}${NC}"
                 else
-                    echo -e "    ${GREEN}▎${NC}${DIM}${line}${NC}"
+                    echo -e "    ${GREEN}▎${NC}${DIM}${display_line}${NC}"
                 fi
             done
             echo ""
@@ -959,9 +967,9 @@ stats_cmd() {
 
     # Animated header
     echo ""
-    echo -e "  ${DIM}╭───────────────────────────────────────────────────╮${NC}"
-    printf "  ${DIM}│${NC}  "; _gradient "◆ Bark Statistics" 39 6; printf "                         ${DIM}│${NC}\n"
-    echo -e "  ${DIM}╰───────────────────────────────────────────────────╯${NC}"
+    echo -e "  ${DIM}╭─────────────────────────────────────────────────╮${NC}"
+    printf "  ${DIM}│${NC} "; _gradient " ◆ Bark Statistics" 39 6; printf "                              ${DIM}│${NC}\n"
+    echo -e "  ${DIM}╰─────────────────────────────────────────────────╯${NC}"
     echo ""
 
     # Big number - total
@@ -1010,10 +1018,14 @@ stats_cmd() {
     # Metric cards side by side
     local hit_str="${hit_rate}%"
     [ "$cache_plus_ai" -eq 0 ] && hit_str="—"
+    # Cards: inner width 22 each
     echo -e "  ${DIM}┌──────────────────────┐  ┌──────────────────────┐${NC}"
-    echo -e "  ${DIM}│${NC}  ${ITALIC}Cache Hit Rate${NC}       ${DIM}│${NC}  ${DIM}│${NC}  ${ITALIC}High Risk Blocked${NC}    ${DIM}│${NC}"
-    printf "  ${DIM}│${NC}  ${C1}${BOLD}%-20s${NC} ${DIM}│${NC}" "$hit_str"
-    echo -e "  ${DIM}│${NC}  ${RED}${BOLD}${high}${NC}$(printf '%*s' $((19 - ${#high})) '')${DIM}│${NC}"
+    echo -e "  ${DIM}│${NC} ${ITALIC}Cache Hit Rate${NC}       ${DIM}│${NC}  ${DIM}│${NC} ${ITALIC}High Risk Blocked${NC}    ${DIM}│${NC}"
+    # Value row — pad dynamically based on value length
+    local _hit_pad=$((20 - ${#hit_str}))
+    local _high_pad=$((20 - ${#high}))
+    printf "  ${DIM}│${NC} ${C1}${BOLD}%s${NC}%*s ${DIM}│${NC}" "$hit_str" "$_hit_pad" ""
+    echo -e "  ${DIM}│${NC} ${RED}${BOLD}${high}${NC}$(printf '%*s' "$_high_pad" '') ${DIM}│${NC}"
     echo -e "  ${DIM}└──────────────────────┘  └──────────────────────┘${NC}"
     echo ""
 }
