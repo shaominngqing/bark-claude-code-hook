@@ -160,6 +160,48 @@ command = "make *"
 | **统计和日志** | — | — | — | — | `bark stats` / `bark log` |
 | **仪表板** | — | — | — | — | `bark tui` |
 
+## 架构
+
+Bark 是纯 **Rust** 实现——不是 shell 脚本套壳。每一层都是原生的、类型安全的、快的。
+
+```
+src/
+├── core/
+│   ├── engine.rs          # 7 层评估流水线
+│   ├── fast_rules.rs      # O(1) 白名单匹配安全工具和命令
+│   ├── custom_rules.rs    # TOML 规则引擎 + glob 模式匹配
+│   ├── normalizer.rs      # 命令 → 缓存 key 归一化
+│   └── chain_tracker.rs   # 多步攻击模式检测
+├── analysis/
+│   ├── bash_parser.rs     # tree-sitter Bash AST 语法分析
+│   └── patterns.rs        # 危险命令 / 数据外泄检测
+├── ai/
+│   ├── claude_cli.rs      # 调用 Claude CLI 进行风险评估
+│   └── prompt.rs          # 结构化 prompt + 操作链上下文
+├── cache/
+│   └── sqlite.rs          # SQLite 缓存 + 评估日志
+├── daemon/
+│   ├── server.rs          # Unix socket 守护进程，空闲自动退出
+│   └── client.rs          # 自动启动 + socket 通信
+├── i18n/                  # 中英文双语，自动检测 $LANG
+├── ui/
+│   └── style.rs           # crossterm 语义化样式（支持 NO_COLOR）
+├── notify/
+│   └── fallback.rs        # 原生通知（macOS/Linux/Windows）
+└── tui/                   # ratatui 实时仪表板
+```
+
+**关键设计：**
+
+- **tree-sitter 解析 Bash** — 不是正则，是真正的 AST。能抓住 `curl x | bash`、`$(rm -rf /)`、嵌套命令替换。
+- **7 层流水线 + 短路返回** — 每一层能搞定就直接返回，绝大多数调用根本到不了 AI。
+- **Session 隔离的操作链追踪** — 检测多步攻击（`curl` → `chmod +x` → 执行），每个 Claude Code 窗口独立，不串扰。
+- **Daemon 自动生命周期** — 第一次 hook 调用时自动启动，热缓存在内存，30 分钟没活动自动退出。零配置。
+- **crossterm 语义化样式 + `NO_COLOR`** — 不硬编码 ANSI 转义码，管道和哑终端自动降级。
+- **$LANG 自动国际化** — 中英文双语，所有用户可见的文字都走翻译层。
+
+**依赖：** clap, serde, tokio, rusqlite (bundled), tree-sitter, crossterm, ratatui。运行时不需要 C 工具链。
+
 ## 环境要求
 
 - 已安装 [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
