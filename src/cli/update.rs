@@ -1,17 +1,13 @@
-use crate::ui::gradient::{DIM, NC};
+use crate::i18n::Locale;
+use crate::ui::style;
 
 /// Self-update (placeholder).
 pub fn run() {
+    let locale = Locale::detect();
     let version = env!("CARGO_PKG_VERSION");
     println!();
     println!("  Bark v{}", version);
-    println!(
-        "  {}Update check is not yet implemented in the Rust version.{}",
-        DIM, NC
-    );
-    println!(
-        "  {}To update manually, rebuild from source or download the latest release.{}",
-        DIM, NC
-    );
+    println!("  {}", style::dim(locale.t("update.not_impl")));
+    println!("  {}", style::dim(locale.t("update.manual")));
     println!();
 }

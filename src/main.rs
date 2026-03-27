@@ -13,9 +13,12 @@ mod tui;
 mod ui;
 
 use clap::Parser;
+use i18n::Locale;
+use ui::style;
 
 fn main() {
     let cli = cli::Cli::parse();
+    let locale = Locale::detect();
 
     // Default to Status if no subcommand given
     match cli.command.unwrap_or(cli::Commands::Status) {
@@ -25,34 +28,26 @@ fn main() {
         cli::Commands::Status => cli::status::run(),
         cli::Commands::On => {
             match config::enable_hook() {
-                Ok(()) => {
-                    println!("  \x1b[0;32m\x1b[1mBark enabled.\x1b[0m");
-                }
-                Err(e) => {
-                    eprintln!("  Error enabling Bark: {}", e);
-                }
+                Ok(()) => println!("  {} {}", style::check(), style::bold(locale.t("on.enabled"))),
+                Err(e) => eprintln!("  {} {}: {}", style::cross(), locale.t("on.error"), e),
             }
         }
         cli::Commands::Off => {
             match config::disable_hook() {
-                Ok(()) => {
-                    println!("  \x1b[1;33m\x1b[1mBark disabled.\x1b[0m");
-                }
-                Err(e) => {
-                    eprintln!("  Error disabling Bark: {}", e);
-                }
+                Ok(()) => println!("  {} {}", style::warn_icon(), style::bold(locale.t("off.disabled"))),
+                Err(e) => eprintln!("  {} {}: {}", style::cross(), locale.t("off.error"), e),
             }
         }
         cli::Commands::Toggle => {
             if config::has_hook() {
                 match config::disable_hook() {
-                    Ok(()) => println!("  \x1b[1;33mBark disabled.\x1b[0m"),
-                    Err(e) => eprintln!("  Error disabling Bark: {}", e),
+                    Ok(()) => println!("  {} {}", style::warn_icon(), style::bold(locale.t("off.disabled"))),
+                    Err(e) => eprintln!("  {} {}: {}", style::cross(), locale.t("off.error"), e),
                 }
             } else {
                 match config::enable_hook() {
-                    Ok(()) => println!("  \x1b[0;32mBark enabled.\x1b[0m"),
-                    Err(e) => eprintln!("  Error enabling Bark: {}", e),
+                    Ok(()) => println!("  {} {}", style::check(), style::bold(locale.t("on.enabled"))),
+                    Err(e) => eprintln!("  {} {}: {}", style::cross(), locale.t("on.error"), e),
                 }
             }
         }

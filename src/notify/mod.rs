@@ -14,20 +14,8 @@ use crate::i18n::Locale;
 pub fn notify_assessment(assessment: &Assessment, locale: &Locale) {
     let subtitle = match assessment.level {
         RiskLevel::Low => return,
-        RiskLevel::Medium => {
-            if matches!(locale, Locale::Zh) {
-                "已自动放行"
-            } else {
-                "Auto-allowed"
-            }
-        }
-        RiskLevel::High => {
-            if matches!(locale, Locale::Zh) {
-                "需要确认"
-            } else {
-                "Confirmation needed"
-            }
-        }
+        RiskLevel::Medium => locale.t("notify.auto_allowed"),
+        RiskLevel::High => locale.t("notify.needs_confirm"),
     };
 
     let sound = if assessment.level == RiskLevel::High {

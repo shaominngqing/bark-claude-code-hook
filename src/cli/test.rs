@@ -4,13 +4,16 @@ use crate::config;
 use crate::core::engine::AssessmentEngine;
 use crate::core::protocol::HookInput;
 use crate::core::risk::RiskLevel;
-use crate::ui::gradient::{BOLD, DIM, GREEN, NC, RED, YELLOW};
+use crate::i18n::Locale;
+use crate::ui::style;
 
 /// Test a command's risk level offline.
 pub fn run(cmd: Vec<String>, verbose: bool, dry_run: bool) {
+    let locale = Locale::detect();
+
     if cmd.is_empty() {
-        eprintln!("Usage: bark test <command>");
-        eprintln!("Example: bark test rm -rf /tmp/test");
+        eprintln!("{}", locale.t("test.usage"));
+        eprintln!("{}", locale.t("test.example"));
         return;
     }
 
@@ -41,46 +44,28 @@ pub fn run(cmd: Vec<String>, verbose: bool, dry_run: bool) {
     let assessment = rt.block_on(engine.assess(&input));
     let elapsed = start.elapsed();
 
-    // Display results
-    let (color, label) = match assessment.level {
-        RiskLevel::Low => (GREEN, "LOW"),
-        RiskLevel::Medium => (YELLOW, "MEDIUM"),
-        RiskLevel::High => (RED, "HIGH"),
+    let level_str = match assessment.level {
+        RiskLevel::Low => "LOW",
+        RiskLevel::Medium => "MEDIUM",
+        RiskLevel::High => "HIGH",
     };
 
+    // Display results
     println!();
-    println!(
-        "  {}Command{}  {}",
-        DIM, NC, command_str
-    );
-    println!(
-        "  {}Risk{}     {}{}{}{}",
-        DIM, NC, color, BOLD, label, NC
-    );
-    println!(
-        "  {}Source{}   {}",
-        DIM, NC, assessment.source
-    );
-    println!(
-        "  {}Reason{}   {}",
-        DIM, NC, assessment.reason
-    );
-    println!(
-        "  {}Time{}     {:.1}ms",
-        DIM, NC, elapsed.as_secs_f64() * 1000.0
-    );
+    style::print_kv(locale.t("test.command"), &command_str);
+    println!("  {:<10}{}", style::dim(locale.t("test.risk")), style::risk_colored(level_str, assessment.level));
+    style::print_kv(locale.t("test.source"), &assessment.source.to_string());
+    style::print_kv(locale.t("test.reason"), &assessment.reason);
+    style::print_kv(locale.t("test.time"), &format!("{:.1}ms", elapsed.as_secs_f64() * 1000.0));
 
     if dry_run && assessment.level == RiskLevel::High {
         println!();
-        println!(
-            "  {}(dry-run: high risk would be overridden to allow){}",
-            DIM, NC
-        );
+        println!("  {}", style::dim(locale.t("test.dry_run_note")));
     }
 
     if verbose {
         println!();
-        println!("  {}Verbose output:{}", DIM, NC);
+        println!("  {}", style::dim(locale.t("test.verbose")));
         println!("    Tool: {}", input.tool_name);
         println!("    Input: {}", input.tool_input);
         println!("    Duration: {:?}", assessment.duration);

@@ -1,7 +1,8 @@
 use crate::config;
 use crate::i18n::Locale;
-use crate::ui::gradient::{self, BOLD, DIM, GREEN, NC, RED, YELLOW, C1, ACCENT};
 use crate::ui::logo;
+use crate::ui::style;
+use crossterm::style::Color;
 
 /// Install the bark hook into Claude Code settings.json.
 pub fn run() {
@@ -12,54 +13,40 @@ pub fn run() {
     println!();
 
     // Step 1: Check environment
-    let step_label = if locale == Locale::Zh { "检查环境" } else { "Check environment" };
-    println!("  {}{}▸{} {}{}{}", C1, BOLD, NC, BOLD, step_label, NC);
+    style::print_step(locale.t("install.check_env"));
 
-    // Check if bark binary is accessible
     let bark_path = std::env::current_exe().unwrap_or_default();
-    println!("  {}✓{} bark binary: {}", GREEN, NC, bark_path.display());
+    style::print_ok(&format!("{}: {}", locale.t("install.bark_binary"), bark_path.display()));
+    style::print_ok(locale.t("install.json_builtin"));
 
-    // Check jq (optional now, Rust handles JSON)
-    println!("  {}✓{} JSON parsing: built-in (no jq needed)", GREEN, NC);
-
-    // Check for existing old bash hook
     if config::bark_dir().join("bark.sh").exists() {
-        println!("  {}⚠{} Old Bash hook detected — will be replaced", YELLOW, NC);
+        style::print_warn(locale.t("install.old_hook"));
     }
     println!();
 
     // Step 2: Prepare directories
-    let step_label = if locale == Locale::Zh { "准备目录" } else { "Prepare directories" };
-    println!("  {}{}▸{} {}{}{}", C1, BOLD, NC, BOLD, step_label, NC);
-
+    style::print_step(locale.t("install.prepare_dirs"));
     std::fs::create_dir_all(config::bark_dir()).ok();
-    println!("  {}✓{} {}", GREEN, NC, config::bark_dir().display());
-
+    style::print_ok(&format!("{}", config::bark_dir().display()));
     println!();
 
     // Step 3: Initialize SQLite cache
-    let step_label = if locale == Locale::Zh { "初始化缓存" } else { "Initialize cache" };
-    println!("  {}{}▸{} {}{}{}", C1, BOLD, NC, BOLD, step_label, NC);
-
+    style::print_step(locale.t("install.init_cache"));
     match crate::cache::SqliteCache::new(&config::bark_db_path()) {
-        Ok(_) => println!("  {}✓{} SQLite cache: {}", GREEN, NC, config::bark_db_path().display()),
-        Err(e) => println!("  {}✗{} Cache init failed: {}", RED, NC, e),
+        Ok(_) => style::print_ok(&format!("{}: {}", locale.t("install.sqlite_cache"), config::bark_db_path().display())),
+        Err(e) => style::print_err(&format!("{}: {}", locale.t("install.cache_failed"), e)),
     }
     println!();
 
     // Step 4: Register hook
-    let step_label = if locale == Locale::Zh { "注册 Hook" } else { "Register hook" };
-    println!("  {}{}▸{} {}{}{}", C1, BOLD, NC, BOLD, step_label, NC);
-
+    style::print_step(locale.t("install.register_hook"));
     if config::has_hook() {
-        println!("  {}✓{} Hook already registered in settings.json", GREEN, NC);
+        style::print_ok(locale.t("install.hook_exists"));
     } else {
         match config::enable_hook() {
-            Ok(()) => {
-                println!("  {}✓{} PreToolUse hook → settings.json", GREEN, NC);
-            }
+            Ok(()) => style::print_ok(locale.t("install.hook_ok")),
             Err(e) => {
-                println!("  {}✗{} Failed to register hook: {}", RED, NC, e);
+                style::print_err(&format!("{}: {}", locale.t("install.hook_failed"), e));
                 return;
             }
         }
@@ -67,10 +54,7 @@ pub fn run() {
     println!();
 
     // Step 5: Verify PATH
-    let step_label = if locale == Locale::Zh { "验证命令" } else { "Verify command" };
-    println!("  {}{}▸{} {}{}{}", C1, BOLD, NC, BOLD, step_label, NC);
-
-    // Check if bark is in PATH
+    style::print_step(locale.t("install.verify_cmd"));
     let in_path = std::process::Command::new("which")
         .arg("bark")
         .output()
@@ -78,56 +62,63 @@ pub fn run() {
         .unwrap_or(false);
 
     if in_path {
-        println!("  {}✓{} `bark` is in PATH", GREEN, NC);
+        style::print_ok(locale.t("install.in_path"));
     } else {
+        style::print_warn(locale.t("install.not_in_path"));
         let bin_path = bark_path.display();
-        println!("  {}⚠{} `bark` not in PATH. Add it:", YELLOW, NC);
-        println!("     {}sudo ln -sf {} /usr/local/bin/bark{}", DIM, bin_path, NC);
-        println!("     {}# or add to your shell profile:{}", DIM, NC);
-        println!("     {}export PATH=\"{}:$PATH\"{}", DIM, bark_path.parent().unwrap_or(&bark_path).display(), NC);
+        println!("     {}",
+            style::dim(format!("sudo ln -sf {} /usr/local/bin/bark", bin_path)));
+        println!("     {}",
+            style::dim(format!("export PATH=\"{}:$PATH\"", bark_path.parent().unwrap_or(&bark_path).display())));
     }
 
-    // Summary
+    // Summary banner
     println!();
-    println!("  {}╭───────────────────────────────────────────────╮{}", DIM, NC);
-    print!("  {}│{}  ", DIM, NC);
-    print!("{}", gradient::gradient_text("✦ Install complete"));
-    println!("                          {}│{}", DIM, NC);
-    println!("  {}╰───────────────────────────────────────────────╯{}", DIM, NC);
+    let banner_width = 42;
+    let border = "\u{2500}".repeat(banner_width);
+    println!("  {}", style::dim(format!("\u{256d}{}\u{256e}", border)));
+    let pad = banner_width - locale.t("install.complete").chars().count() - 1;
+    println!("  {}  {}{}{}",
+        style::dim("\u{2502}"),
+        style::gradient(locale.t("install.complete")),
+        " ".repeat(pad),
+        style::dim("\u{2502}"),
+    );
+    println!("  {}", style::dim(format!("\u{2570}{}\u{256f}", border)));
     println!();
 
-    if locale == Locale::Zh {
-        println!("  {}工作原理{}", BOLD, NC);
-        println!();
-        println!("    {}◆{} {}只读工具{}  Read / Grep / Glob     {}──▸{} {}直接放行{}", GREEN, NC, DIM, NC, DIM, NC, GREEN, NC);
-        println!("    {}◆{} {}文件编辑{}  普通源代码文件         {}──▸{} {}直接放行{}", GREEN, NC, DIM, NC, DIM, NC, GREEN, NC);
-        println!("    {}◆{} {}Bash命令{}  所有命令               {}──▸{} {}AST + AI 评估{}", gradient::C2, NC, DIM, NC, DIM, NC, gradient::C2, NC);
-        println!("    {}◆{} {}重复模式{}  同类命令第二次         {}──▸{} {}缓存命中 (0ms){}", GREEN, NC, DIM, NC, DIM, NC, GREEN, NC);
-        println!("    {}◆{} {}高风险  {}  rm -rf / force push   {}──▸{} {}通知 + 确认{}", RED, NC, DIM, NC, DIM, NC, RED, NC);
-        println!();
-        println!("  {}快速开始{}", BOLD, NC);
-        println!();
-        println!("    {}bark{} {}help{}           查看所有命令", C1, NC, DIM, NC);
-        println!("    {}bark{} {}stats{}          查看统计数据", C1, NC, DIM, NC);
-        println!("    {}bark{} {}test rm -rf /{}  测试风险评估", C1, NC, DIM, NC);
-        println!();
-        println!("  {}▸ 新开的 Claude Code 会话自动生效{}", ACCENT, NC);
-    } else {
-        println!("  {}How it works{}", BOLD, NC);
-        println!();
-        println!("    {}◆{} {}Read-only{}  Read / Grep / Glob     {}──▸{} {}Allow{}", GREEN, NC, DIM, NC, DIM, NC, GREEN, NC);
-        println!("    {}◆{} {}Edits   {}  Normal source files     {}──▸{} {}Allow{}", GREEN, NC, DIM, NC, DIM, NC, GREEN, NC);
-        println!("    {}◆{} {}Bash    {}  All commands             {}──▸{} {}AST + AI assess{}", gradient::C2, NC, DIM, NC, DIM, NC, gradient::C2, NC);
-        println!("    {}◆{} {}Repeat  {}  Same pattern again      {}──▸{} {}Cache hit (0ms){}", GREEN, NC, DIM, NC, DIM, NC, GREEN, NC);
-        println!("    {}◆{} {}Danger  {}  rm -rf / force push     {}──▸{} {}Notify + confirm{}", RED, NC, DIM, NC, DIM, NC, RED, NC);
-        println!();
-        println!("  {}Quick start{}", BOLD, NC);
-        println!();
-        println!("    {}bark{} {}help{}           Show all commands", C1, NC, DIM, NC);
-        println!("    {}bark{} {}stats{}          View statistics", C1, NC, DIM, NC);
-        println!("    {}bark{} {}test rm -rf /{}  Test risk assessment", C1, NC, DIM, NC);
-        println!();
-        println!("  {}▸ Takes effect in new Claude Code sessions{}", ACCENT, NC);
+    // How it works table
+    style::print_section(locale.t("install.how_it_works"));
+    println!();
+
+    let pipeline: &[(&str, &str, &str, Color)] = &[
+        ("install.readonly_label", "install.readonly_tools", "install.readonly_action", Color::Green),
+        ("install.edits_label", "install.edits_tools", "install.edits_action", Color::Green),
+        ("install.bash_label", "install.bash_tools", "install.bash_action", Color::AnsiValue(45)),
+        ("install.repeat_label", "install.repeat_tools", "install.repeat_action", Color::Green),
+        ("install.danger_label", "install.danger_tools", "install.danger_action", Color::Red),
+    ];
+
+    for (label_key, tools_key, action_key, color) in pipeline {
+        println!("    {} {:<10} {}  {} {}",
+            style::colored("\u{25c6}", *color),
+            style::dim(locale.t(label_key)),
+            style::dim(locale.t(tools_key)),
+            style::flow_arrow(),
+            style::colored(locale.t(action_key), *color),
+        );
     }
+
+    println!();
+    style::print_section(locale.t("install.quick_start"));
+    println!();
+    println!("    {} {}           {}",
+        style::brand("bark"), style::dim("help"), locale.t("install.cmd_help"));
+    println!("    {} {}          {}",
+        style::brand("bark"), style::dim("stats"), locale.t("install.cmd_stats"));
+    println!("    {} {}  {}",
+        style::brand("bark"), style::dim("test rm -rf /"), locale.t("install.cmd_test"));
+    println!();
+    println!("  {} {}", style::accent("\u{25b8}"), locale.t("install.takes_effect"));
     println!();
 }

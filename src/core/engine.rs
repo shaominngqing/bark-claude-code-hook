@@ -177,10 +177,12 @@ impl AssessmentEngine {
         }
 
         // Layer 7: Fallback - medium risk for anything that reached here
-        let reason = match self.locale {
-            Locale::Zh => format!("未知操作: {} - 需要人工确认", tool_name),
-            Locale::En => format!("Unknown operation: {} - requires human confirmation", tool_name),
-        };
+        let reason = format!(
+            "{}: {} - {}",
+            self.locale.t("risk.unknown_op"),
+            tool_name,
+            self.locale.t("risk.needs_confirm"),
+        );
         Assessment::medium(reason, AssessmentSource::Fallback)
     }
 
@@ -196,16 +198,11 @@ impl AssessmentEngine {
             .map(|p| p.to_string())
             .collect();
 
-        let reason = match self.locale {
-            Locale::Zh => format!(
-                "检测到可疑操作链: {}",
-                patterns.join(", ")
-            ),
-            Locale::En => format!(
-                "Suspicious operation chain detected: {}",
-                patterns.join(", ")
-            ),
-        };
+        let reason = format!(
+            "{}: {}",
+            self.locale.t("risk.suspicious_chain"),
+            patterns.join(", "),
+        );
 
         Some(Assessment::high(reason, AssessmentSource::ChainTracker))
     }
@@ -336,10 +333,12 @@ impl AssessmentEngine {
             }
         }
 
-        let reason = match self.locale {
-            Locale::Zh => format!("未知操作: {} - 需要人工确认", tool_name),
-            Locale::En => format!("Unknown operation: {} - requires human confirmation", tool_name),
-        };
+        let reason = format!(
+            "{}: {} - {}",
+            self.locale.t("risk.unknown_op"),
+            tool_name,
+            self.locale.t("risk.needs_confirm"),
+        );
         Assessment::medium(reason, AssessmentSource::Fallback)
     }
 

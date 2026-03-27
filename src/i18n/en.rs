@@ -1,88 +1,150 @@
-
 /// English translation strings.
-///
-/// Ported from the bash `_t()` function in install.sh (English section).
-
-#[cfg(test)]
 pub fn get(key: &str) -> &'static str {
     match key {
+        // --- Risk assessment (fast_rules / engine) ---
+        "risk.readonly" => "Read-only tool, no risk",
+        "risk.task_mgmt" => "Task management tool, no risk",
+        "risk.safe_cmd" => "Safe command",
+        "risk.file_edit" => "File edit",
+        "risk.unknown_op" => "Unknown operation",
+        "risk.needs_confirm" => "requires human confirmation",
+        "risk.suspicious_chain" => "Suspicious operation chain detected",
+
         // --- Status ---
-        "enabled" => "Bark: Enabled",
-        "disabled" => "Bark: Disabled",
+        "status.active" => "Active",
+        "status.active_hint" => "hook is running",
+        "status.inactive" => "Inactive",
+        "status.inactive_hint" => "hook is disabled",
+        "status.version" => "Version",
+        "status.cache" => "Cache",
+        "status.log" => "Log",
+        "status.settings" => "Settings",
+        "status.rules" => "Rules",
+        "status.not_created" => "(not created)",
+        "status.entries" => "entries",
+        "status.assessments_logged" => "assessments logged",
 
-        // --- Toggle ---
-        "already_on" => "Bark is already enabled",
-        "turned_on" => "Bark enabled (takes effect in new sessions)",
-        "already_off" => "Bark is already disabled",
-        "turned_off" => "Bark disabled (takes effect in new sessions)",
+        // --- On / Off / Toggle ---
+        "on.enabled" => "Bark enabled.",
+        "off.disabled" => "Bark disabled.",
+        "on.error" => "Error enabling Bark",
+        "off.error" => "Error disabling Bark",
 
-        // --- Cache ---
-        "cache_cleared" => "Cache cleared",
-        "cache_empty" => "Cache is empty",
-        "cache_stats" => "Cache statistics:",
-        "cache_count" => "Entries",
-        "cache_size" => "Size",
-        "cache_dir" => "Directory",
-        "cache_entries" => "Cache entries",
-        "cache_recent" => "Recent cached decisions:",
-
-        // --- Log ---
-        "log_cleared" => "Log cleared",
-        "log_empty" => "Log is empty",
-        "log_lines" => "Log lines",
-        "log_recent" => "Last",
-        "log_suffix" => "log entries:",
-
-        // --- Uninstall ---
-        "uninstalling" => "Uninstalling Bark...",
-        "uninstalled" => "Bark fully uninstalled",
+        // --- Install ---
+        "install.check_env" => "Check environment",
+        "install.bark_binary" => "bark binary",
+        "install.json_builtin" => "JSON parsing: built-in (no jq needed)",
+        "install.old_hook" => "Old Bash hook detected \u{2014} will be replaced",
+        "install.prepare_dirs" => "Prepare directories",
+        "install.init_cache" => "Initialize cache",
+        "install.sqlite_cache" => "SQLite cache",
+        "install.cache_failed" => "Cache init failed",
+        "install.register_hook" => "Register hook",
+        "install.hook_exists" => "Hook already registered in settings.json",
+        "install.hook_ok" => "PreToolUse hook \u{2192} settings.json",
+        "install.hook_failed" => "Failed to register hook",
+        "install.verify_cmd" => "Verify command",
+        "install.in_path" => "`bark` is in PATH",
+        "install.not_in_path" => "`bark` not in PATH. Add it:",
+        "install.complete" => "\u{2728} Install complete",
+        "install.how_it_works" => "How it works",
+        "install.readonly_label" => "Read-only",
+        "install.readonly_tools" => "Read / Grep / Glob",
+        "install.readonly_action" => "Allow",
+        "install.edits_label" => "Edits",
+        "install.edits_tools" => "Normal source files",
+        "install.edits_action" => "Allow",
+        "install.bash_label" => "Bash",
+        "install.bash_tools" => "All commands",
+        "install.bash_action" => "AST + AI assess",
+        "install.repeat_label" => "Repeat",
+        "install.repeat_tools" => "Same pattern again",
+        "install.repeat_action" => "Cache hit (0ms)",
+        "install.danger_label" => "Danger",
+        "install.danger_tools" => "rm -rf / force push",
+        "install.danger_action" => "Notify + confirm",
+        "install.quick_start" => "Quick start",
+        "install.cmd_help" => "Show all commands",
+        "install.cmd_stats" => "View statistics",
+        "install.cmd_test" => "Test risk assessment",
+        "install.takes_effect" => "Takes effect in new Claude Code sessions",
 
         // --- Test ---
-        "test_usage" => "Usage: bark test [--verbose] [--dry-run] <bash command>",
-        "test_example" => "Example: bark test --verbose rm -rf node_modules",
+        "test.usage" => "Usage: bark test <command>",
+        "test.example" => "Example: bark test rm -rf /tmp/test",
+        "test.command" => "Command",
+        "test.risk" => "Risk",
+        "test.source" => "Source",
+        "test.reason" => "Reason",
+        "test.time" => "Time",
+        "test.dry_run_note" => "(dry-run: high risk would be overridden to allow)",
+        "test.verbose" => "Verbose output:",
 
-        // --- Help ---
-        "help_title" => "Bark \u{2014} AI Risk Assessment for Claude Code",
-        "cmd_status" => "  status            Show status",
-        "cmd_onoff" => "  on / off          Enable / disable",
-        "cmd_toggle" => "  toggle            Toggle on/off",
-        "cmd_test" => "  test <cmd>        Test a command's risk level",
-        "cmd_cache" => "  cache [clear]     View/clear cache",
-        "cmd_log" => "  log [N|clear]     View last N log entries / clear log",
-        "cmd_stats" => "  stats             Show statistics",
-        "cmd_rules" => "  rules [edit]      View/edit custom rules",
-        "cmd_update" => "  update            Update to latest version",
-        "cmd_uninstall" => "  uninstall         Completely uninstall",
-        "cmd_version" => "  version           Show version",
-        "cmd_help" => "  help              Show this help",
+        // --- Cache ---
+        "cache.no_db" => "No cache database found",
+        "cache.run_first" => "Run some assessments first to populate the cache.",
+        "cache.cleared" => "Cache cleared.",
+        "cache.stats_title" => "Cache Statistics",
+        "cache.entries" => "Entries",
+        "cache.size" => "Size",
+        "cache.no_entries" => "No cached entries.",
+        "cache.recent" => "Recent entries:",
 
-        // --- Rules ---
-        "rules_empty" => "No custom rules defined",
-        "rules_header" => "Custom rules:",
-        "rules_path" => "File",
+        // --- Log ---
+        "log.no_db" => "No database found",
+        "log.run_first" => "Run some assessments first to populate the log.",
+        "log.cleared" => "Log cleared.",
+        "log.title" => "Assessment Log",
+        "log.no_entries" => "No log entries found.",
 
         // --- Stats ---
-        "stats_empty" => "No statistics yet (log is empty)",
+        "stats.no_data" => "No assessment data yet.",
+        "stats.run_first" => "Run some assessments to see statistics.",
+        "stats.total" => "Total Assessments",
+        "stats.no_assessments" => "No assessments recorded yet.",
+        "stats.source_breakdown" => "Source Breakdown",
+        "stats.risk_distribution" => "Risk Distribution",
+        "stats.cache_hit_rate" => "Cache Hit Rate",
+        "stats.cache_label" => "Cache",
+
+        // --- Rules ---
+        "rules.no_file" => "No custom rules file found.",
+        "rules.create_hint" => "Run {cmd} to create one.",
+        "rules.title" => "Custom Rules",
+        "rules.no_rules" => "No rules defined.",
+        "rules.edit_hint" => "Run {cmd} to add rules.",
+        "rules.created" => "Created",
+        "rules.opening" => "Opening {path} in {editor}...",
+        "rules.saved" => "Rules file saved.",
+        "rules.editor_exit" => "Editor exited with status",
+        "rules.editor_fail" => "Failed to open editor",
+        "rules.editor_hint" => "Set $EDITOR to your preferred editor.",
+
+        // --- Uninstall ---
+        "uninstall.title" => "Uninstalling Bark...",
+        "uninstall.removed" => "Removed",
+        "uninstall.failed" => "Failed to remove",
+        "uninstall.hook" => "hook from settings.json",
+        "uninstall.cache_db" => "cache database",
+        "uninstall.cache_wal" => "cache WAL",
+        "uninstall.cache_shm" => "cache SHM",
+        "uninstall.custom_rules" => "custom rules",
+        "uninstall.log_file" => "log file",
+        "uninstall.daemon_socket" => "daemon socket",
+        "uninstall.daemon_pid" => "daemon PID file",
+        "uninstall.binary" => "Removed binary",
+        "uninstall.binary_fail" => "Failed to remove binary",
+        "uninstall.skip_dev" => "Skipped binary removal (development build)",
+        "uninstall.done" => "Bark has been fully uninstalled.",
 
         // --- Update ---
-        "updating" => "Updating Bark...",
-        "update_ok" => "Bark updated to latest version",
-        "update_fail" => "Update failed, please check your network",
+        "update.current" => "Bark v{version}",
+        "update.not_impl" => "Update check is not yet implemented in the Rust version.",
+        "update.manual" => "To update manually, rebuild from source or download the latest release.",
 
-        // --- Risk assessment labels ---
-        "read_only" => "Read-only operation",
-        "task_mgmt" => "Task management",
-        "normal_edit" => "Normal file edit",
-        "ai_fallback" => "AI assessment failed, conservative fallback",
-
-        // --- Status display ---
-        "status_active" => "Active \u{2014} hook is running",
-        "status_inactive" => "Inactive \u{2014} hook is disabled",
-
-        // --- Misc ---
-        "version_label" => "Version",
-        "confirm_uninstall" => "Are you sure you want to uninstall Bark?",
-        "cancelled" => "Cancelled",
+        // --- Notify ---
+        "notify.auto_allowed" => "Auto-allowed",
+        "notify.needs_confirm" => "Confirmation needed",
 
         // --- Fallback ---
         _ => "???",
@@ -95,27 +157,13 @@ mod tests {
 
     #[test]
     fn test_known_keys() {
-        assert_eq!(get("enabled"), "Bark: Enabled");
-        assert_eq!(get("disabled"), "Bark: Disabled");
-        assert_eq!(get("cache_cleared"), "Cache cleared");
-        assert_eq!(get("help_title"), "Bark \u{2014} AI Risk Assessment for Claude Code");
+        assert_eq!(get("on.enabled"), "Bark enabled.");
+        assert_eq!(get("off.disabled"), "Bark disabled.");
+        assert_eq!(get("cache.cleared"), "Cache cleared.");
     }
 
     #[test]
     fn test_unknown_key() {
         assert_eq!(get("does_not_exist"), "???");
-    }
-
-    #[test]
-    fn test_all_cmd_keys() {
-        let cmd_keys = [
-            "cmd_status", "cmd_onoff", "cmd_toggle", "cmd_test",
-            "cmd_cache", "cmd_log", "cmd_stats", "cmd_rules",
-            "cmd_update", "cmd_uninstall", "cmd_version", "cmd_help",
-        ];
-        for key in cmd_keys {
-            let val = get(key);
-            assert_ne!(val, "???", "Missing translation for key: {}", key);
-        }
     }
 }

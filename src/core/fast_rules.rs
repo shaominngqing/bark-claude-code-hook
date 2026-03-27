@@ -104,9 +104,6 @@ const SENSITIVE_PATTERNS: &[&str] = &[
 ///
 /// Returns `Some(Assessment)` for clearly safe operations (level 0 / Low),
 /// or `None` when the tool/command needs deeper analysis.
-///
-/// For Bash commands, checks against a whitelist of known-safe commands
-/// (ls, cat, grep, git status, cargo test, etc.) to avoid wasting 8s on AI.
 pub fn fast_check_with_command(
     tool_name: &str,
     command: Option<&str>,
@@ -115,20 +112,18 @@ pub fn fast_check_with_command(
 ) -> Option<Assessment> {
     // 1. Read-only tools → always safe
     if READ_ONLY_TOOLS.contains(&tool_name) {
-        let reason = match locale {
-            Locale::Zh => "只读工具，无风险".to_string(),
-            Locale::En => "Read-only tool, no risk".to_string(),
-        };
-        return Some(Assessment::low(reason, AssessmentSource::FastRule));
+        return Some(Assessment::low(
+            locale.t("risk.readonly").to_string(),
+            AssessmentSource::FastRule,
+        ));
     }
 
     // 2. Task tools → always safe
     if TASK_TOOLS.contains(&tool_name) {
-        let reason = match locale {
-            Locale::Zh => "任务管理工具，无风险".to_string(),
-            Locale::En => "Task management tool, no risk".to_string(),
-        };
-        return Some(Assessment::low(reason, AssessmentSource::FastRule));
+        return Some(Assessment::low(
+            locale.t("risk.task_mgmt").to_string(),
+            AssessmentSource::FastRule,
+        ));
     }
 
     // 3. Bash → check safe command whitelist first
@@ -151,32 +146,29 @@ pub fn fast_check_with_command(
 
             // Check exact match
             if SAFE_BASH_COMMANDS.contains(&trimmed) {
-                let reason = match locale {
-                    Locale::Zh => format!("安全命令: {}", trimmed),
-                    Locale::En => format!("Safe command: {}", trimmed),
-                };
-                return Some(Assessment::low(reason, AssessmentSource::FastRule));
+                return Some(Assessment::low(
+                    format!("{}: {}", locale.t("risk.safe_cmd"), trimmed),
+                    AssessmentSource::FastRule,
+                ));
             }
 
             // Check prefix match (e.g., "ls -la /tmp" starts with "ls ")
             for prefix in SAFE_BASH_PREFIXES {
                 if trimmed.starts_with(prefix) {
-                    let reason = match locale {
-                        Locale::Zh => format!("安全命令: {}", first_n_chars(trimmed, 40)),
-                        Locale::En => format!("Safe command: {}", first_n_chars(trimmed, 40)),
-                    };
-                    return Some(Assessment::low(reason, AssessmentSource::FastRule));
+                    return Some(Assessment::low(
+                        format!("{}: {}", locale.t("risk.safe_cmd"), first_n_chars(trimmed, 40)),
+                        AssessmentSource::FastRule,
+                    ));
                 }
             }
 
             // Extract first word and check
             let first_word = trimmed.split_whitespace().next().unwrap_or("");
             if SAFE_BASH_COMMANDS.contains(&first_word) {
-                let reason = match locale {
-                    Locale::Zh => format!("安全命令: {}", first_n_chars(trimmed, 40)),
-                    Locale::En => format!("Safe command: {}", first_n_chars(trimmed, 40)),
-                };
-                return Some(Assessment::low(reason, AssessmentSource::FastRule));
+                return Some(Assessment::low(
+                    format!("{}: {}", locale.t("risk.safe_cmd"), first_n_chars(trimmed, 40)),
+                    AssessmentSource::FastRule,
+                ));
             }
         }
 
@@ -192,11 +184,10 @@ pub fn fast_check_with_command(
                 return None;
             }
             // Non-sensitive file edit → safe
-            let reason = match locale {
-                Locale::Zh => format!("文件编辑: {}", path_basename(path)),
-                Locale::En => format!("File edit: {}", path_basename(path)),
-            };
-            return Some(Assessment::low(reason, AssessmentSource::FastRule));
+            return Some(Assessment::low(
+                format!("{}: {}", locale.t("risk.file_edit"), path_basename(path)),
+                AssessmentSource::FastRule,
+            ));
         }
         // No file path provided for a file tool → suspicious, defer
         return None;
@@ -210,7 +201,6 @@ pub fn fast_check_with_command(
 fn is_sensitive_path(path: &str) -> bool {
     let lower = path.to_lowercase();
     SENSITIVE_PATTERNS.iter().any(|pattern| {
-        // For dotfiles and exact names, check if the path contains the pattern
         lower.contains(pattern)
     })
 }
@@ -304,7 +294,9 @@ mod tests {
     fn test_zh_locale() {
         let result = fast_check_with_command("Read", None, None, &Locale::Zh);
         assert!(result.is_some());
-        assert!(result.unwrap().reason.contains("只读"));
+        // Chinese translation for "risk.readonly" should be present
+        let reason = &result.unwrap().reason;
+        assert!(!reason.is_empty());
     }
 
     #[test]

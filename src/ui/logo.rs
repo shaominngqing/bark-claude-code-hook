@@ -1,9 +1,5 @@
-
 /// ASCII art logo and banner display.
-///
-/// Ported from `_logo()` and the install.sh banner in the bash version.
-
-use super::gradient::gradient_text_bold;
+use super::style;
 
 /// Small ASCII art logo (figlet -f small "Bark").
 const LOGO_LINES: [&str; 4] = [
@@ -16,9 +12,15 @@ const LOGO_LINES: [&str; 4] = [
 /// Print the small logo with gradient coloring.
 pub fn print_logo() {
     for line in &LOGO_LINES {
-        print!("  ");
-        println!("{}", gradient_text_bold(line));
+        println!("  {}", style::gradient(line));
     }
+}
+
+/// Print the logo followed by a version tagline.
+pub fn print_banner() {
+    print_logo();
+    let version = env!("CARGO_PKG_VERSION");
+    println!("  {} {}", style::dim("v"), style::dim(version));
 }
 
 #[cfg(test)]

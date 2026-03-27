@@ -5,8 +5,9 @@ pub mod zh;
 use serde::{Deserialize, Serialize};
 
 /// Supported locales.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Locale {
+    #[default]
     En,
     Zh,
 }
@@ -41,18 +42,20 @@ impl Locale {
         }
     }
 
+    /// Look up a translation key for this locale.
+    pub fn t(&self, key: &str) -> &'static str {
+        match self {
+            Locale::En => en::get(key),
+            Locale::Zh => zh::get(key),
+        }
+    }
+
     /// Returns the language hint string for AI prompts.
     pub fn prompt_hint(&self) -> &'static str {
         match self {
             Locale::En => "in English",
             Locale::Zh => "in Chinese",
         }
-    }
-}
-
-impl Default for Locale {
-    fn default() -> Self {
-        Locale::En
     }
 }
 
@@ -72,6 +75,24 @@ mod tests {
     #[test]
     fn test_default_is_en() {
         assert_eq!(Locale::default(), Locale::En);
+    }
+
+    #[test]
+    fn test_t_en() {
+        assert_eq!(Locale::En.t("on.enabled"), "Bark enabled.");
+    }
+
+    #[test]
+    fn test_t_zh() {
+        let val = Locale::Zh.t("on.enabled");
+        assert!(val.contains("Bark"));
+    }
+
+    #[test]
+    fn test_t_fallback() {
+        assert_eq!(Locale::En.t("nonexistent"), "???");
+        // Zh falls back to En, which returns "???"
+        assert_eq!(Locale::Zh.t("nonexistent"), "???");
     }
 
     #[test]
