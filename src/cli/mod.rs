@@ -1,4 +1,5 @@
 pub mod cache;
+#[cfg(unix)]
 pub mod daemon_cmd;
 pub mod hook;
 pub mod install;
@@ -23,7 +24,8 @@ pub struct Cli {
 pub enum Commands {
     /// Run as PreToolUse hook (reads stdin, writes stdout)
     Hook,
-    /// Start the daemon process
+    /// Start the daemon process (Unix only)
+    #[cfg(unix)]
     Daemon,
     /// Show status
     Status,

@@ -7,7 +7,10 @@ use std::process::Command;
 /// - Windows: PowerShell toast notification
 ///
 /// Fire-and-forget: spawns a background process, returns immediately.
-pub fn notify(title: &str, subtitle: &str, body: &str, sound: Option<&str>) {
+pub fn notify(title: &str, subtitle: &str, body: &str, _sound: Option<&str>) {
+    // _sound is used on macOS only
+    #[cfg(target_os = "macos")]
+    let sound = _sound;
     #[cfg(target_os = "macos")]
     notify_macos(title, subtitle, body, sound);
 

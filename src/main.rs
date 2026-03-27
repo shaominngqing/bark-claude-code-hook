@@ -4,6 +4,7 @@ mod cache;
 mod cli;
 mod config;
 mod core;
+#[cfg(unix)]
 mod daemon;
 mod i18n;
 mod notify;
@@ -19,6 +20,7 @@ fn main() {
     // Default to Status if no subcommand given
     match cli.command.unwrap_or(cli::Commands::Status) {
         cli::Commands::Hook => cli::hook::run(),
+        #[cfg(unix)]
         cli::Commands::Daemon => cli::daemon_cmd::run(),
         cli::Commands::Status => cli::status::run(),
         cli::Commands::On => {

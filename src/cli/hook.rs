@@ -5,7 +5,6 @@ use crate::cache::sqlite::{LogEntry, SqliteCache};
 use crate::config;
 use crate::core::engine::AssessmentEngine;
 use crate::core::protocol::{HookInput, HookOutput};
-use crate::daemon::client;
 
 /// Run the PreToolUse hook handler.
 ///
@@ -47,13 +46,13 @@ pub fn run() {
     };
 
     let output = rt.block_on(async {
-        // Try daemon first if socket exists
-        let sock = client::socket_path();
-        if sock.exists() {
-            match client::assess(&sock, &input).await {
-                Ok(output) => return output,
-                Err(_) => {
-                    // Daemon not available, fall through to standalone
+        // Try daemon first if socket exists (Unix only)
+        #[cfg(unix)]
+        {
+            let sock = crate::daemon::client::socket_path();
+            if sock.exists() {
+                if let Ok(output) = crate::daemon::client::assess(&sock, &input).await {
+                    return output;
                 }
             }
         }
