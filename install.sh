@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-BARK_VERSION="2.0.0"
+BARK_VERSION="2.0.1"
 REPO="shaominngqing/bark-claude-code-hook"
 
 NC='\033[0m'; BOLD='\033[1m'; DIM='\033[2m'
