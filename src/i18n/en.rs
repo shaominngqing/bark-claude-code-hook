@@ -31,9 +31,6 @@ pub fn get(key: &str) -> &'static str {
         "off.error" => "Error disabling Bark",
 
         // --- Install ---
-        "install.check_env" => "Check environment",
-        "install.bark_binary" => "bark binary",
-        "install.json_builtin" => "JSON parsing: built-in (no jq needed)",
         "install.old_hook" => "Old Bash hook detected \u{2014} will be replaced",
         "install.prepare_dirs" => "Prepare directories",
         "install.init_cache" => "Initialize cache",
@@ -43,9 +40,6 @@ pub fn get(key: &str) -> &'static str {
         "install.hook_exists" => "Hook already registered in settings.json",
         "install.hook_ok" => "PreToolUse hook \u{2192} settings.json",
         "install.hook_failed" => "Failed to register hook",
-        "install.verify_cmd" => "Verify command",
-        "install.in_path" => "`bark` is in PATH",
-        "install.not_in_path" => "`bark` not in PATH. Add it:",
         "install.complete" => "\u{2728} Install complete",
         "install.how_it_works" => "How it works",
         "install.readonly_label" => "Read-only",

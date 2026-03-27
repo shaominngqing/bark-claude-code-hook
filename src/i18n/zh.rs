@@ -31,9 +31,6 @@ pub fn get(key: &str) -> &'static str {
         "off.error" => "\u{7981}\u{7528} Bark \u{5931}\u{8d25}",
 
         // --- Install ---
-        "install.check_env" => "\u{68c0}\u{67e5}\u{73af}\u{5883}",
-        "install.bark_binary" => "bark \u{53ef}\u{6267}\u{884c}\u{6587}\u{4ef6}",
-        "install.json_builtin" => "JSON \u{89e3}\u{6790}: \u{5185}\u{7f6e}(\u{65e0}\u{9700} jq)",
         "install.old_hook" => "\u{68c0}\u{6d4b}\u{5230}\u{65e7}\u{7248} Bash hook \u{2014} \u{5c06}\u{88ab}\u{66ff}\u{6362}",
         "install.prepare_dirs" => "\u{51c6}\u{5907}\u{76ee}\u{5f55}",
         "install.init_cache" => "\u{521d}\u{59cb}\u{5316}\u{7f13}\u{5b58}",
@@ -43,9 +40,6 @@ pub fn get(key: &str) -> &'static str {
         "install.hook_exists" => "Hook \u{5df2}\u{6ce8}\u{518c}\u{5230} settings.json",
         "install.hook_ok" => "PreToolUse hook \u{2192} settings.json",
         "install.hook_failed" => "\u{6ce8}\u{518c} hook \u{5931}\u{8d25}",
-        "install.verify_cmd" => "\u{9a8c}\u{8bc1}\u{547d}\u{4ee4}",
-        "install.in_path" => "`bark` \u{5df2}\u{5728} PATH \u{4e2d}",
-        "install.not_in_path" => "`bark` \u{4e0d}\u{5728} PATH \u{4e2d}\u{3002}\u{8bf7}\u{6dfb}\u{52a0}:",
         "install.complete" => "\u{2728} \u{5b89}\u{88c5}\u{5b8c}\u{6210}",
         "install.how_it_works" => "\u{5de5}\u{4f5c}\u{539f}\u{7406}",
         "install.readonly_label" => "\u{53ea}\u{8bfb}\u{5de5}\u{5177}",

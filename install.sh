@@ -36,15 +36,18 @@ _gradient() {
     printf "${NC}"
 }
 
-# ── Banner ──
+# ── Banner (block pixel art) ──
 echo ""
 {
 cat << 'BANNER'
-    ____             __
-   / __ )____ ______/ /__
-  / __  / __ `/ ___/ //_/
- / /_/ / /_/ / /  / ,<
-/_____/\__,_/_/  /_/|_|
+ ███████████                      █████
+░░███░░░░░███                    ░░███
+ ░███    ░███  ██████   ████████  ░███ █████
+ ░██████████  ░░░░░███ ░░███░░███ ░███░░███
+ ░███░░░░░███  ███████  ░███ ░░░  ░██████░
+ ░███    ░███ ███░░███  ░███      ░███░░███
+ ███████████ ░░████████ █████     ████ █████
+░░░░░░░░░░░   ░░░░░░░░ ░░░░░     ░░░░ ░░░░░
 BANNER
 } | while IFS= read -r line; do
     printf "  "
@@ -52,7 +55,7 @@ BANNER
     printf "\n"
 done
 echo ""
-printf "  ${DIM}  🐕 AI-Powered Risk Assessment for Claude Code  v${BARK_VERSION}${NC}\n"
+printf "    ${DIM}🐕 AI-Powered Risk Assessment for Claude Code  v${BARK_VERSION}${NC}\n"
 echo ""
 
 # ── Detect platform ──
@@ -77,9 +80,6 @@ esac
 TARGET="${OS}-${ARCH}"
 ok "$OS_LABEL $ARCH"
 
-# ── Check dependencies ──
-step "Check environment"
-
 command -v claude >/dev/null 2>&1 && ok "claude CLI" || warn "claude CLI not found (AI assessment will be unavailable)"
 
 # ── Download binary ──
@@ -95,12 +95,60 @@ TMP_DIR=$(mktemp -d)
 TMP_BIN="${TMP_DIR}/bark"
 trap "rm -rf '$TMP_DIR'" EXIT
 
-# Try downloading from GitHub Releases
+# Render a progress bar: _draw_progress <current> <total>
+_draw_progress() {
+    local cur="$1" total="$2" width=32
+    local pct=0 filled=0 empty="$width"
+    if [ "$total" -gt 0 ]; then
+        pct=$(( cur * 100 / total ))
+        filled=$(( cur * width / total ))
+        empty=$(( width - filled ))
+    fi
+    # Size label
+    local size_mb
+    size_mb=$(echo "scale=1; $cur / 1048576" | bc 2>/dev/null || echo "?")
+    local total_mb
+    total_mb=$(echo "scale=1; $total / 1048576" | bc 2>/dev/null || echo "?")
+    # Build bar
+    local bar=""
+    local i
+    for ((i=0; i<filled; i++)); do bar="${bar}\033[38;5;39m━"; done
+    for ((i=0; i<empty;  i++)); do bar="${bar}\033[2m━"; done
+    printf "\r  ${bar}${NC} ${DIM}%s/%sMB${NC} %3d%%" "$size_mb" "$total_mb" "$pct" >&2
+}
+
+# Download with animated progress bar
 DOWNLOADED=false
+TOTAL_SIZE=0
 
 if command -v curl >/dev/null 2>&1; then
-    if curl -fsSL "$DOWNLOAD_URL" -o "$TMP_BIN" 2>/dev/null; then
-        DOWNLOADED=true
+    # Get file size via HEAD request
+    TOTAL_SIZE=$(curl -fsSLI "$DOWNLOAD_URL" 2>/dev/null \
+        | grep -i 'content-length' | tail -1 | tr -dc '0-9')
+    TOTAL_SIZE="${TOTAL_SIZE:-0}"
+
+    if [ "$TOTAL_SIZE" -gt 0 ]; then
+        # Download in background, poll file size for progress
+        curl -fsSL "$DOWNLOAD_URL" -o "$TMP_BIN" 2>/dev/null &
+        DL_PID=$!
+        while kill -0 "$DL_PID" 2>/dev/null; do
+            if [ -f "$TMP_BIN" ]; then
+                CUR_SIZE=$(wc -c < "$TMP_BIN" 2>/dev/null | tr -d ' ')
+                _draw_progress "${CUR_SIZE:-0}" "$TOTAL_SIZE"
+            fi
+            sleep 0.15
+        done
+        wait "$DL_PID" && DOWNLOADED=true || true
+        # Final 100% frame
+        if [ "$DOWNLOADED" = true ] && [ -s "$TMP_BIN" ]; then
+            _draw_progress "$TOTAL_SIZE" "$TOTAL_SIZE"
+        fi
+        printf "\n" >&2
+    else
+        # No content-length: silent download
+        if curl -fsSL "$DOWNLOAD_URL" -o "$TMP_BIN" 2>/dev/null; then
+            DOWNLOADED=true
+        fi
     fi
 elif command -v wget >/dev/null 2>&1; then
     if wget -q "$DOWNLOAD_URL" -O "$TMP_BIN" 2>/dev/null; then
@@ -110,7 +158,16 @@ fi
 
 if [ "$DOWNLOADED" = true ] && [ -s "$TMP_BIN" ]; then
     chmod +x "$TMP_BIN"
-    ok "Downloaded from GitHub Releases"
+    # Show size in success message
+    FILESIZE=$(wc -c < "$TMP_BIN" | tr -d ' ')
+    if [ "$FILESIZE" -ge 1048576 ]; then
+        SIZE_LABEL="$(echo "scale=1; $FILESIZE / 1048576" | bc)MB"
+    elif [ "$FILESIZE" -ge 1024 ]; then
+        SIZE_LABEL="$(echo "scale=0; $FILESIZE / 1024" | bc)KB"
+    else
+        SIZE_LABEL="${FILESIZE}B"
+    fi
+    ok "bark v${BARK_VERSION} (${SIZE_LABEL})"
 else
     # No pre-built binary available — try building from source
     warn "No pre-built binary for ${TARGET}, building from source..."

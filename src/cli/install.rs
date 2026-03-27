@@ -1,6 +1,5 @@
 use crate::config;
 use crate::i18n::Locale;
-use crate::ui::logo;
 use crate::ui::style;
 use crossterm::style::Color;
 
@@ -8,37 +7,24 @@ use crossterm::style::Color;
 pub fn run() {
     let locale = Locale::detect();
 
-    println!();
-    logo::print_logo();
-    println!();
-
-    // Step 1: Check environment
-    style::print_step(locale.t("install.check_env"));
-
-    let bark_path = std::env::current_exe().unwrap_or_default();
-    style::print_ok(&format!("{}: {}", locale.t("install.bark_binary"), bark_path.display()));
-    style::print_ok(locale.t("install.json_builtin"));
-
     if config::bark_dir().join("bark.sh").exists() {
+        println!();
         style::print_warn(locale.t("install.old_hook"));
     }
-    println!();
 
-    // Step 2: Prepare directories
+    // Step 1: Prepare directories
     style::print_step(locale.t("install.prepare_dirs"));
     std::fs::create_dir_all(config::bark_dir()).ok();
     style::print_ok(&format!("{}", config::bark_dir().display()));
-    println!();
 
-    // Step 3: Initialize SQLite cache
+    // Step 2: Initialize SQLite cache
     style::print_step(locale.t("install.init_cache"));
     match crate::cache::SqliteCache::new(&config::bark_db_path()) {
         Ok(_) => style::print_ok(&format!("{}: {}", locale.t("install.sqlite_cache"), config::bark_db_path().display())),
         Err(e) => style::print_err(&format!("{}: {}", locale.t("install.cache_failed"), e)),
     }
-    println!();
 
-    // Step 4: Register hook
+    // Step 3: Register hook
     style::print_step(locale.t("install.register_hook"));
     if config::has_hook() {
         style::print_ok(locale.t("install.hook_exists"));
@@ -51,46 +37,26 @@ pub fn run() {
             }
         }
     }
+
+    // ── Completion banner ──
     println!();
-
-    // Step 5: Verify PATH
-    style::print_step(locale.t("install.verify_cmd"));
-    let in_path = std::process::Command::new("which")
-        .arg("bark")
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false);
-
-    if in_path {
-        style::print_ok(locale.t("install.in_path"));
-    } else {
-        style::print_warn(locale.t("install.not_in_path"));
-        let bin_path = bark_path.display();
-        println!("     {}",
-            style::dim(format!("sudo ln -sf {} /usr/local/bin/bark", bin_path)));
-        println!("     {}",
-            style::dim(format!("export PATH=\"{}:$PATH\"", bark_path.parent().unwrap_or(&bark_path).display())));
-    }
-
-    // Summary banner
-    println!();
-    let banner_width = 42;
-    let border = "\u{2500}".repeat(banner_width);
-    println!("  {}", style::dim(format!("\u{256d}{}\u{256e}", border)));
-    let pad = banner_width - locale.t("install.complete").chars().count() - 1;
+    let banner_width = 50;
+    let top = format!("  \u{256d}{}\u{256e}", "\u{2500}".repeat(banner_width));
+    let bot = format!("  \u{2570}{}\u{256f}", "\u{2500}".repeat(banner_width));
+    let sep = format!("  \u{251c}{}\u{2524}", "\u{2500}".repeat(banner_width));
+    println!("{}", style::dim(&top));
+    // Title line
+    let title = locale.t("install.complete");
+    let title_pad = banner_width - title.chars().map(|c| if c > '\u{FF}' { 2 } else { 1 }).sum::<usize>() - 1;
     println!("  {}  {}{}{}",
         style::dim("\u{2502}"),
-        style::gradient(locale.t("install.complete")),
-        " ".repeat(pad),
+        style::gradient(title),
+        " ".repeat(title_pad),
         style::dim("\u{2502}"),
     );
-    println!("  {}", style::dim(format!("\u{2570}{}\u{256f}", border)));
-    println!();
+    println!("{}", style::dim(&sep));
 
-    // How it works table
-    style::print_section(locale.t("install.how_it_works"));
-    println!();
-
+    // Pipeline rows inside the box
     let pipeline: &[(&str, &str, &str, Color)] = &[
         ("install.readonly_label", "install.readonly_tools", "install.readonly_action", Color::Green),
         ("install.edits_label", "install.edits_tools", "install.edits_action", Color::Green),
@@ -99,16 +65,36 @@ pub fn run() {
         ("install.danger_label", "install.danger_tools", "install.danger_action", Color::Red),
     ];
 
+    let display_width = |s: &str| -> usize {
+        s.chars().map(|c| if c > '\u{FF}' { 2 } else { 1 }).sum()
+    };
+
     for (label_key, tools_key, action_key, color) in pipeline {
-        println!("    {} {:<10} {}  {} {}",
+        let label = locale.t(label_key);
+        let tools = locale.t(tools_key);
+        let action = locale.t(action_key);
+        // Pad label to 10 display columns
+        let label_w = display_width(label);
+        let label_pad = if label_w < 10 { 10 - label_w } else { 1 };
+        // Calculate total visible width: " ◆ label  tools  ──▸ action"
+        let row_width = 1 + 1 + 1 + label_w + label_pad + display_width(tools) + 2 + 3 + 1 + display_width(action);
+        let trail = if row_width < banner_width { banner_width - row_width } else { 0 };
+        println!("  {} {} {}{}{}  {} {}{}{}",
+            style::dim("\u{2502}"),
             style::colored("\u{25c6}", *color),
-            style::dim(locale.t(label_key)),
-            style::dim(locale.t(tools_key)),
+            style::dim(label),
+            " ".repeat(label_pad),
+            style::dim(tools),
             style::flow_arrow(),
-            style::colored(locale.t(action_key), *color),
+            style::colored(action, *color),
+            " ".repeat(trail),
+            style::dim("\u{2502}"),
         );
     }
 
+    println!("{}", style::dim(&bot));
+
+    // Quick start commands
     println!();
     style::print_section(locale.t("install.quick_start"));
     println!();
