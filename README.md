@@ -164,33 +164,6 @@ command = "make *"
 
 Bark is written in **Rust** — not a shell script wrapper. Every layer is native, typed, and fast.
 
-```
-src/
-├── core/
-│   ├── engine.rs          # 7-layer assessment pipeline
-│   ├── fast_rules.rs      # O(1) whitelist for safe tools & commands
-│   ├── custom_rules.rs    # TOML rule engine with glob matching
-│   ├── normalizer.rs      # Command → cache key normalization
-│   └── chain_tracker.rs   # Multi-step attack pattern detection
-├── analysis/
-│   ├── bash_parser.rs     # tree-sitter Bash AST analysis
-│   └── patterns.rs        # Destructive command / exfil detection
-├── ai/
-│   ├── claude_cli.rs      # Claude CLI integration for risk assessment
-│   └── prompt.rs          # Structured prompts with chain context
-├── cache/
-│   └── sqlite.rs          # SQLite-backed assessment cache + log
-├── daemon/
-│   ├── server.rs          # Unix socket daemon with idle auto-shutdown
-│   └── client.rs          # Auto-spawn + assess via socket
-├── i18n/                  # English / Chinese, auto-detected from $LANG
-├── ui/
-│   └── style.rs           # crossterm semantic styling (NO_COLOR aware)
-├── notify/
-│   └── fallback.rs        # Native notifications (macOS/Linux/Windows)
-└── tui/                   # ratatui real-time dashboard
-```
-
 **Key design choices:**
 
 - **tree-sitter for Bash parsing** — Not regex. Real AST. Catches `curl x | bash`, `$(rm -rf /)`, nested command substitution.

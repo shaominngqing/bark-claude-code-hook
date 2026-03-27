@@ -164,33 +164,6 @@ command = "make *"
 
 Bark 是纯 **Rust** 实现——不是 shell 脚本套壳。每一层都是原生的、类型安全的、快的。
 
-```
-src/
-├── core/
-│   ├── engine.rs          # 7 层评估流水线
-│   ├── fast_rules.rs      # O(1) 白名单匹配安全工具和命令
-│   ├── custom_rules.rs    # TOML 规则引擎 + glob 模式匹配
-│   ├── normalizer.rs      # 命令 → 缓存 key 归一化
-│   └── chain_tracker.rs   # 多步攻击模式检测
-├── analysis/
-│   ├── bash_parser.rs     # tree-sitter Bash AST 语法分析
-│   └── patterns.rs        # 危险命令 / 数据外泄检测
-├── ai/
-│   ├── claude_cli.rs      # 调用 Claude CLI 进行风险评估
-│   └── prompt.rs          # 结构化 prompt + 操作链上下文
-├── cache/
-│   └── sqlite.rs          # SQLite 缓存 + 评估日志
-├── daemon/
-│   ├── server.rs          # Unix socket 守护进程，空闲自动退出
-│   └── client.rs          # 自动启动 + socket 通信
-├── i18n/                  # 中英文双语，自动检测 $LANG
-├── ui/
-│   └── style.rs           # crossterm 语义化样式（支持 NO_COLOR）
-├── notify/
-│   └── fallback.rs        # 原生通知（macOS/Linux/Windows）
-└── tui/                   # ratatui 实时仪表板
-```
-
 **关键设计：**
 
 - **tree-sitter 解析 Bash** — 不是正则，是真正的 AST。能抓住 `curl x | bash`、`$(rm -rf /)`、嵌套命令替换。
