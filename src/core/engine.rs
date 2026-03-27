@@ -260,6 +260,7 @@ impl AssessmentEngine {
     /// Each Claude Code window has its own session. The daemon uses this to keep
     /// chain tracking separate per window, so operations from window A don't
     /// pollute the chain context of window B.
+    #[cfg(unix)]
     pub async fn assess_with_session(&self, input: &HookInput, session_id: Option<&str>) -> Assessment {
         let sid = session_id.unwrap_or(&self.session_id);
         let start = Instant::now();
@@ -287,6 +288,7 @@ impl AssessmentEngine {
     }
 
     /// Inner assess using a specific session ID for chain context.
+    #[cfg(unix)]
     async fn assess_inner_with_session(&self, input: &HookInput, session_id: &str) -> Assessment {
         let tool_name = input.tool_name.as_str();
         let command = input.command();

@@ -11,6 +11,7 @@ use crate::core::protocol::{HookInput, HookOutput};
 /// Claude Code sets CLAUDE_SESSION_ID or similar env vars per session.
 /// If not available, fall back to parent PID (each Claude Code window
 /// is a separate process tree, so PPID is a reasonable proxy).
+#[cfg(unix)]
 fn get_session_id() -> String {
     // Try Claude Code's session env vars
     if let Ok(sid) = std::env::var("CLAUDE_SESSION_ID") {
