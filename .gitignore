@@ -1,0 +1,22 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Video build artifacts
+video/node_modules/
+video/out/
+
+# Bark runtime
+*.db
+*.db-wal
+*.db-shm
+bark.log

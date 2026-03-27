@@ -1,0 +1,99 @@
+# Bark Configuration
+# Copy to ~/.claude/bark.toml to customize
+
+[general]
+cache_ttl_hours = 24
+ai_timeout_seconds = 30
+log_max_entries = 1000
+locale = "auto"               # "auto" | "en" | "zh"
+
+[anthropic]
+# API key is read from ANTHROPIC_API_KEY environment variable
+model = "claude-sonnet-4-20250514"
+max_tokens = 100
+
+# Custom Rules
+# Each rule has: name, match conditions, risk level, and reason
+# Risk levels: "low" (0), "medium" (1), "high" (2)
+# Match fields: tool (glob, | for OR), command (glob), file_path (glob)
+# Conditions: cwd_contains, file_exists, git_branch (glob), not = { ... }
+
+[[rules]]
+name = "safe-reads"
+risk = "low"
+reason = "Read-only operation"
+
+[rules.match]
+tool = "Read|Glob|Grep|Agent"
+
+[[rules]]
+name = "safe-tests"
+risk = "low"
+reason = "Test execution"
+
+[rules.match]
+tool = "Bash"
+command = "npm test*"
+
+[[rules]]
+name = "allow-build"
+risk = "low"
+reason = "Build command"
+
+[rules.match]
+tool = "Bash"
+command = "cargo build*"
+
+[[rules]]
+name = "allow-make"
+risk = "low"
+reason = "Build via Makefile"
+
+[rules.match]
+tool = "Bash"
+command = "make *"
+
+[[rules]]
+name = "notify-git-push"
+risk = "medium"
+reason = "Pushing to remote"
+
+[rules.match]
+tool = "Bash"
+command = "git push*"
+
+[[rules]]
+name = "block-force-push"
+risk = "high"
+reason = "Force push is destructive"
+
+[rules.match]
+tool = "Bash"
+command = "git push *--force*"
+
+[[rules]]
+name = "block-rm-rf-root"
+risk = "high"
+reason = "Recursive deletion of root"
+
+[rules.match]
+tool = "Bash"
+command = "rm -rf /*"
+
+[[rules]]
+name = "sensitive-env-edit"
+risk = "high"
+reason = "Editing environment secrets"
+
+[rules.match]
+tool = "Edit|Write"
+file_path = "*.env*"
+
+[[rules]]
+name = "ci-config-edit"
+risk = "medium"
+reason = "CI configuration change"
+
+[rules.match]
+tool = "Edit|Write"
+file_path = ".github/workflows/*"

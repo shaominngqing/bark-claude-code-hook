@@ -1,0 +1,17 @@
+[[rules]]
+name = "allow-tests"
+risk = "low"
+reason = "Test commands are safe"
+
+[rules.match]
+tool = "Bash"
+command = "npm test*"
+
+[[rules]]
+name = "block-force-push"
+risk = "high"
+reason = "Force push is destructive"
+
+[rules.match]
+tool = "Bash"
+command = "git push *--force*"
