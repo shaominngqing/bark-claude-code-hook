@@ -363,8 +363,16 @@ fn offer_start(app_path: &std::path::Path, locale: &Locale) {
     print!("  {} [Y/n] ", locale.t("notifier.start_prompt"));
     std::io::stdout().flush().ok();
 
+    // Read from /dev/tty directly — stdin may be a pipe when called from install.sh
+    let tty = std::fs::File::open("/dev/tty").ok();
     let mut input = String::new();
-    if std::io::stdin().read_line(&mut input).is_ok() {
+    let read_ok = if let Some(mut tty) = tty {
+        use std::io::BufRead;
+        std::io::BufReader::new(&mut tty).read_line(&mut input).is_ok()
+    } else {
+        std::io::stdin().read_line(&mut input).is_ok()
+    };
+    if read_ok {
         let answer = input.trim().to_lowercase();
         if answer.is_empty() || answer == "y" || answer == "yes" {
             Command::new("open")
