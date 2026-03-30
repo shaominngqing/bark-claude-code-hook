@@ -251,7 +251,7 @@ if [ "$OS" = "darwin" ]; then
     echo -e "  ${DIM}$NOTIFIER_DESC${NC}"
     echo -e "  ${DIM}$NOTIFIER_OPT${NC}"
     echo ""
-    read -p "  [y/N] " install_notifier
+    read -p "  [y/N] " install_notifier < /dev/tty
     if [[ "$install_notifier" =~ ^[Yy] ]]; then
         "$BARK_CMD" install-notifier
     fi

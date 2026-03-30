@@ -44,7 +44,43 @@ pub fn run() {
     remove_if_exists(&config::socket_path(), locale.t("uninstall.daemon_socket"), &locale);
     remove_if_exists(&config::pid_path(), locale.t("uninstall.daemon_pid"), &locale);
 
-    // 7. Remove the bark binary itself
+    // 7. Remove BarkNotifier
+    #[cfg(target_os = "macos")]
+    {
+        // Kill BarkNotifier process
+        std::process::Command::new("pkill")
+            .args(["-f", "BarkNotifier"])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .ok();
+
+        // Remove notifier socket
+        remove_if_exists(&config::notifier_socket_path(), "notifier socket", &locale);
+
+        // Unload and remove LaunchAgent
+        let plist_path = config::notifier_launchd_plist_path();
+        if plist_path.exists() {
+            std::process::Command::new("launchctl")
+                .args(["unload", &plist_path.to_string_lossy()])
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .status()
+                .ok();
+            remove_if_exists(&plist_path, "LaunchAgent", &locale);
+        }
+
+        // Remove BarkNotifier.app
+        let app_path = config::notifier_app_path();
+        if app_path.exists() {
+            match std::fs::remove_dir_all(&app_path) {
+                Ok(()) => print_removed("BarkNotifier.app", &locale),
+                Err(e) => print_failed("BarkNotifier.app", &e.to_string(), &locale),
+            }
+        }
+    }
+
+    // 8. Remove the bark binary itself
     let self_path = std::env::current_exe().ok();
     if let Some(ref exe) = self_path {
         let is_installed = !exe.to_string_lossy().contains("target/");
