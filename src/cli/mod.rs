@@ -3,6 +3,7 @@ pub mod cache;
 pub mod daemon_cmd;
 pub mod hook;
 pub mod install;
+pub mod install_notifier;
 pub mod log_cmd;
 pub mod rules;
 pub mod stats;
@@ -69,6 +70,8 @@ pub enum Commands {
     },
     /// Install hook into Claude Code settings
     Install,
+    /// Install the notification helper app (macOS)
+    InstallNotifier,
     /// Update to latest version
     Update,
     /// Completely uninstall Bark

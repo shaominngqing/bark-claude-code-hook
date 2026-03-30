@@ -65,8 +65,35 @@ jobs:
           name: bark-${{ matrix.name }}
           path: bark-${{ matrix.name }}*
 
+  build-notifier:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            arch: universal
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build BarkNotifier.app
+        run: bash notifier/build.sh
+
+      - name: Sign BarkNotifier
+        run: codesign --force --deep --sign - notifier/build/BarkNotifier.app
+
+      - name: Package BarkNotifier
+        run: |
+          cd notifier/build
+          zip -r BarkNotifier-macos.zip BarkNotifier.app
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BarkNotifier-macos
+          path: notifier/build/BarkNotifier-macos.zip
+
   release:
-    needs: build
+    needs: [build, build-notifier]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

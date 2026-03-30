@@ -47,6 +47,26 @@ pub fn pid_path() -> PathBuf {
     home.join(".claude").join("bark.pid")
 }
 
+/// Get the notification helper socket path (`~/.claude/bark-notifier.sock`).
+pub fn notifier_socket_path() -> PathBuf {
+    let home = dirs::home_dir().expect("Could not determine home directory");
+    home.join(".claude").join("bark-notifier.sock")
+}
+
+/// Get the BarkNotifier.app install path (`~/Applications/BarkNotifier.app`).
+pub fn notifier_app_path() -> PathBuf {
+    let home = dirs::home_dir().expect("Could not determine home directory");
+    home.join("Applications").join("BarkNotifier.app")
+}
+
+/// Get the LaunchAgent plist path for BarkNotifier.
+pub fn notifier_launchd_plist_path() -> PathBuf {
+    let home = dirs::home_dir().expect("Could not determine home directory");
+    home.join("Library")
+        .join("LaunchAgents")
+        .join("com.bark.notifier.plist")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

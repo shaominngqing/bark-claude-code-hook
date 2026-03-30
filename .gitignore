@@ -20,3 +20,4 @@ video/out/
 *.db-wal
 *.db-shm
 bark.log
+notifier/build/

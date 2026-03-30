@@ -140,6 +140,24 @@ pub fn get(key: &str) -> &'static str {
         "notify.auto_allowed" => "\u{5df2}\u{81ea}\u{52a8}\u{653e}\u{884c}",
         "notify.needs_confirm" => "\u{9700}\u{8981}\u{786e}\u{8ba4}",
 
+        // --- Install Notifier ---
+        "notifier.title" => "\u{5b89}\u{88c5} Bark \u{901a}\u{77e5}\u{52a9}\u{624b}",
+        "notifier.detect" => "\u{68c0}\u{6d4b}\u{5e73}\u{53f0}",
+        "notifier.macos_only" => "Bark \u{901a}\u{77e5}\u{52a9}\u{624b}\u{76ee}\u{524d}\u{4ec5}\u{652f}\u{6301} macOS\u{3002}",
+        "notifier.download" => "\u{4e0b}\u{8f7d} BarkNotifier.app",
+        "notifier.install" => "\u{5b89}\u{88c5}\u{5230} ~/Applications",
+        "notifier.quarantine" => "\u{6e05}\u{9664}\u{9694}\u{79bb}\u{6807}\u{8bb0}",
+        "notifier.launchd" => "\u{6ce8}\u{518c}\u{5f00}\u{673a}\u{542f}\u{52a8}",
+        "notifier.complete" => "Bark \u{901a}\u{77e5}\u{52a9}\u{624b}\u{5b89}\u{88c5}\u{5b8c}\u{6210}\u{ff01}",
+        "notifier.icon" => "\u{81ea}\u{5b9a}\u{4e49}\u{901a}\u{77e5}\u{56fe}\u{6807}",
+        "notifier.buttons" => "\u{5141}\u{8bb8} / \u{62d2}\u{7edd} / \u{8df3}\u{8fc7} \u{6309}\u{94ae}",
+        "notifier.fallback" => "\u{81ea}\u{52a8}\u{56de}\u{9000}\u{5230}\u{7ec8}\u{7aef}\u{786e}\u{8ba4}",
+        "notifier.start_prompt" => "\u{73b0}\u{5728}\u{542f}\u{52a8}\u{ff1f}",
+        "notifier.started" => "BarkNotifier \u{5df2}\u{542f}\u{52a8}\u{3002}",
+        "notifier.already" => "BarkNotifier.app \u{5df2}\u{5b89}\u{88c5}\u{3002}",
+        "notifier.build" => "\u{4ece}\u{6e90}\u{7801}\u{6784}\u{5efa}",
+        "notifier.build_hint" => "\u{65e0}\u{9884}\u{6784}\u{5efa}\u{4e8c}\u{8fdb}\u{5236}\u{ff0c}\u{672c}\u{5730}\u{6784}\u{5efa}\u{4e2d}\u{ff08}\u{9700}\u{8981} Xcode \u{547d}\u{4ee4}\u{884c}\u{5de5}\u{5177}\u{ff09}...",
+
         // --- Fallback: delegate to English ---
         _ => super::en::get(key),
     }

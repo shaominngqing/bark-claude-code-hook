@@ -102,8 +102,8 @@ async fn run_standalone(input: &HookInput) -> HookOutput {
     let assessment = engine.assess(input).await;
     let locale = engine.locale().clone();
 
-    // Notification
-    crate::notify::notify_assessment(&assessment, &locale);
+    // Try helper notification (may override permission decision for High risk)
+    let decision_override = crate::notify::notify_and_decide(&assessment, &locale).await;
 
     // Log to SQLite
     if let Ok(cache) = SqliteCache::open(&config::bark_db_path()) {
@@ -121,5 +121,9 @@ async fn run_standalone(input: &HookInput) -> HookOutput {
         cache.log_assessment(&log_entry).ok();
     }
 
-    HookOutput::from_assessment(&assessment, &locale)
+    let mut output = HookOutput::from_assessment(&assessment, &locale);
+    if let Some(decision) = decision_override {
+        output.hook_specific_output.permission_decision = decision;
+    }
+    output
 }

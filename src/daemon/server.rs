@@ -190,11 +190,13 @@ async fn process_request(
             state.assessment_count.fetch_add(1, Ordering::Relaxed);
 
             let locale = state.engine.locale().clone();
-            let output = HookOutput::from_assessment(&assessment, &locale);
+            let mut output = HookOutput::from_assessment(&assessment, &locale);
             let duration_ms = start.elapsed().as_millis() as u64;
 
-            // Notification + logging
-            crate::notify::notify_assessment(&assessment, &locale);
+            // Try helper notification (may override permission decision for High risk)
+            if let Some(decision) = crate::notify::notify_and_decide(&assessment, &locale).await {
+                output.hook_specific_output.permission_decision = decision;
+            }
 
             if let Ok(cache) = SqliteCache::open(&config::bark_db_path()) {
                 let log_entry = LogEntry {

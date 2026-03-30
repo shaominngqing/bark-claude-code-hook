@@ -65,6 +65,7 @@ fn main() {
             cli::rules::run(action);
         }
         cli::Commands::Install => cli::install::run(),
+        cli::Commands::InstallNotifier => cli::install_notifier::run(),
         cli::Commands::Update => cli::update::run(),
         cli::Commands::Uninstall => cli::uninstall::run(),
         #[cfg(feature = "tui")]

@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-BARK_VERSION="2.0.2"
+BARK_VERSION="2.1.0"
 REPO="shaominngqing/bark-claude-code-hook"
 
 NC='\033[0m'; BOLD='\033[1m'; DIM='\033[2m'
@@ -234,3 +234,32 @@ fi
 
 # ── Run bark install (registers hook in settings.json) ──
 "$BARK_CMD" install
+
+# ── Optional: Install notification helper ──
+if [ "$OS" = "darwin" ]; then
+    echo ""
+    if is_zh; then
+        NOTIFIER_PROMPT="  ${C2}${BOLD}\xF0\x9F\x94\x94${NC} ${BOLD}安装 Bark 通知助手？${NC}"
+        NOTIFIER_DESC="     自定义图标、允许/拒绝/跳过按钮、自动回退终端确认"
+        NOTIFIER_OPT="     可选 — 不安装也可正常使用 bark"
+    else
+        NOTIFIER_PROMPT="  ${C2}${BOLD}\xF0\x9F\x94\x94${NC} ${BOLD}Install Bark Notifier?${NC}"
+        NOTIFIER_DESC="     Custom icon, Allow/Deny/Skip buttons, auto-fallback to terminal"
+        NOTIFIER_OPT="     Optional — bark works fine without it"
+    fi
+    echo -e "$NOTIFIER_PROMPT"
+    echo -e "  ${DIM}$NOTIFIER_DESC${NC}"
+    echo -e "  ${DIM}$NOTIFIER_OPT${NC}"
+    echo ""
+    read -p "  [y/N] " install_notifier
+    if [[ "$install_notifier" =~ ^[Yy] ]]; then
+        "$BARK_CMD" install-notifier
+    fi
+elif [ "$OS" = "linux" ]; then
+    echo ""
+    if is_zh; then
+        echo -e "  ${DIM}\xF0\x9F\x92\xA1 Linux 上 Bark 使用 D-Bus 通知，无需额外安装${NC}"
+    else
+        echo -e "  ${DIM}\xF0\x9F\x92\xA1 On Linux, Bark uses D-Bus notifications natively — no extra install needed${NC}"
+    fi
+fi

@@ -140,6 +140,24 @@ pub fn get(key: &str) -> &'static str {
         "notify.auto_allowed" => "Auto-allowed",
         "notify.needs_confirm" => "Confirmation needed",
 
+        // --- Install Notifier ---
+        "notifier.title" => "Install Bark Notifier",
+        "notifier.detect" => "Detect platform",
+        "notifier.macos_only" => "Bark Notifier is currently macOS only.",
+        "notifier.download" => "Download BarkNotifier.app",
+        "notifier.install" => "Install to ~/Applications",
+        "notifier.quarantine" => "Clear quarantine",
+        "notifier.launchd" => "Register login item",
+        "notifier.complete" => "Bark Notifier installed!",
+        "notifier.icon" => "Custom notification icon",
+        "notifier.buttons" => "Allow / Deny / Skip buttons",
+        "notifier.fallback" => "Auto-fallback to terminal",
+        "notifier.start_prompt" => "Start now?",
+        "notifier.started" => "BarkNotifier started.",
+        "notifier.already" => "BarkNotifier.app already installed.",
+        "notifier.build" => "Build from source",
+        "notifier.build_hint" => "No pre-built binary, building locally (requires Xcode CLI tools)...",
+
         // --- Fallback ---
         _ => "???",
     }
