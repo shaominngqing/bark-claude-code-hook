@@ -33,8 +33,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         socketServer = SocketServer(path: socketPath, delegate: self)
         socketServer?.start()
 
-        // Listen for theme changes
+        // Listen for theme changes (user toggle + system appearance change)
         NotificationCenter.default.addObserver(self, selector: #selector(themeDidChange), name: .barkThemeChanged, object: nil)
+        DistributedNotificationCenter.default().addObserver(self, selector: #selector(systemAppearanceChanged), name: NSNotification.Name("AppleInterfaceThemeChangedNotification"), object: nil)
 
         NSLog("BarkNotifier: started, socket at \(socketPath)")
     }
@@ -105,6 +106,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
 
     @objc private func themeDidChange() {
         applyThemeAppearance()
+    }
+
+    @objc private func systemAppearanceChanged() {
+        // Only matters in "system" mode
+        if BarkTheme.mode == .system {
+            // Re-post theme changed so all views refresh their colors
+            NotificationCenter.default.post(name: .barkThemeChanged, object: nil)
+        }
     }
 
     private func applyThemeAppearance() {
