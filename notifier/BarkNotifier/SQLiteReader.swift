@@ -180,8 +180,13 @@ class SQLiteReader {
     private func openDB() -> OpaquePointer? {
         var db: OpaquePointer?
         guard FileManager.default.fileExists(atPath: dbPath) else { return nil }
-        guard sqlite3_open_v2(dbPath, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nil) == SQLITE_OK else {
-            return nil
+        // Use READWRITE to support reading WAL-mode databases written by bark daemon
+        guard sqlite3_open_v2(dbPath, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX, nil) == SQLITE_OK else {
+            // Fallback to readonly if readwrite fails (e.g. permission issue)
+            guard sqlite3_open_v2(dbPath, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nil) == SQLITE_OK else {
+                return nil
+            }
+            return db
         }
         return db
     }
