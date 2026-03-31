@@ -101,10 +101,24 @@ class DashboardTabView: NSView {
     }
 
     func updateRunning(_ running: Bool) {
-        let color = running ? BarkTheme.running : BarkTheme.stopped
+        let store = BarkDataStore.shared
+        let color: NSColor
+        let text: String
+
+        if !store.barkInstalled {
+            color = BarkTheme.dimText
+            text = "Not Installed"
+        } else if running {
+            color = BarkTheme.running
+            text = "Running"
+        } else {
+            color = BarkTheme.stopped
+            text = "Stopped"
+        }
+
         statusDot.layer?.backgroundColor = color.cgColor
         statusLabel.textColor = color
-        statusLabel.stringValue = running ? "Running" : "Stopped"
+        statusLabel.stringValue = text
     }
 
     func refreshFromStore() {

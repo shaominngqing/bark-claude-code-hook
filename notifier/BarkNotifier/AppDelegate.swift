@@ -92,7 +92,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             popover.performClose(sender)
         } else {
             if let button = statusItem.button {
-                // Refresh data before showing
+                // Activate app so .transient popover responds to outside clicks
+                NSApp.activate(ignoringOtherApps: true)
+
                 BarkDataStore.shared.isRunning = FileManager.default.fileExists(atPath: Self.socketPath())
                 BarkDataStore.shared.refresh()
                 popoverVC.refreshAll()

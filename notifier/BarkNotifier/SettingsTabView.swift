@@ -141,9 +141,17 @@ class SettingsTabView: NSView {
     func reload() {
         let store = BarkDataStore.shared
 
-        hookSwitch.state = store.hookEnabled ? .on : .off
-        hookLabel.stringValue = store.hookEnabled ? "Enabled" : "Disabled"
-        hookLabel.textColor = store.hookEnabled ? BarkTheme.running : BarkTheme.stopped
+        if !store.barkInstalled {
+            hookSwitch.state = .off
+            hookSwitch.isEnabled = false
+            hookLabel.stringValue = "Bark not installed"
+            hookLabel.textColor = BarkTheme.dimText
+        } else {
+            hookSwitch.isEnabled = true
+            hookSwitch.state = store.hookEnabled ? .on : .off
+            hookLabel.stringValue = store.hookEnabled ? "Enabled" : "Disabled"
+            hookLabel.textColor = store.hookEnabled ? BarkTheme.running : BarkTheme.stopped
+        }
 
         let cs = store.cacheStats
         let sizeKB = cs.sizeBytes / 1024

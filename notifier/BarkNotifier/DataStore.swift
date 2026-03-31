@@ -32,6 +32,7 @@ class BarkDataStore {
     var rules: [ParsedRule] = []
 
     // State
+    var barkInstalled: Bool = false
     var hookEnabled: Bool = false
     var isRunning: Bool = false
 
@@ -51,7 +52,20 @@ class BarkDataStore {
         recentLog = SQLiteReader.shared.getLog(count: 100)
         cacheStats = SQLiteReader.shared.getCacheStats()
         rules = parseTomlRules()
-        hookEnabled = checkHookEnabled()
+        barkInstalled = checkBarkInstalled()
+        hookEnabled = barkInstalled && checkHookEnabled()
+    }
+
+    // MARK: - Bark Binary
+
+    private func checkBarkInstalled() -> Bool {
+        let candidates = [
+            "/opt/homebrew/bin/bark",
+            "/usr/local/bin/bark",
+            "\(FileManager.default.homeDirectoryForCurrentUser.path)/.local/bin/bark",
+            "\(FileManager.default.homeDirectoryForCurrentUser.path)/.cargo/bin/bark",
+        ]
+        return candidates.contains { FileManager.default.fileExists(atPath: $0) }
     }
 
     // MARK: - Hook Status
