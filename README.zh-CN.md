@@ -107,11 +107,31 @@ Claude Code 调用工具
 
 🔴 **高风险** — 通知带声音 + Claude Code 终端里等你确认。`rm -rf /`、force push、远程代码执行。
 
+## Bark 通知助手 (macOS)
+
+可选的菜单栏应用。安装时选择 yes，或后续运行：
+
+```bash
+bark install-notifier
+```
+
+**功能：**
+
+- **系统原生通知** 带 Allow / Deny / Skip 按钮 — 直接在通知里操作，不用切回终端
+- **菜单栏应用**，带 4 个标签页：
+  - 📊 仪表板 — 实时统计、风险分布
+  - 📋 活动日志 — 可按风险等级筛选
+  - 📐 规则 — 查看/编辑自定义 TOML 规则
+  - ⚙️ 设置 — 开关 Hook、亮色/暗色/跟随系统主题、缓存管理
+- **点击通知** 自动跳转到终端窗口
+- **自动回退** — 10 秒内不操作，自动回退到终端确认
+- **完全可选** — 不装也能正常用（退化到 osascript 通知）
+
 ## 全平台支持
 
 | 平台 | 安装 | 通知 | Daemon |
 |---|---|---|---|
-| **macOS** (Apple Silicon & Intel) | `curl \| bash` | 原生 (`osascript`) | 自动 |
+| **macOS** (Apple Silicon & Intel) | `curl \| bash` | 原生 + BarkNotifier | 自动 |
 | **Linux** (x86_64 & ARM64) | `curl \| bash` | `notify-send` | 自动 |
 | **Windows** (x86_64) | `curl \| bash` | PowerShell toast | 仅 standalone |
 
@@ -120,15 +140,16 @@ Claude Code 调用工具
 ## 命令
 
 ```bash
-bark status         # 在跑吗？
-bark test <cmd>     # 测试任意命令的风险等级
-bark cache [clear]  # 它记住了什么
-bark log [clear]    # 它看到了什么
-bark stats          # 性能仪表板
-bark rules [edit]   # 自定义规则
-bark on / off       # 启用 / 禁用
-bark tui            # 实时终端大屏
-bark uninstall      # 完全卸载
+bark status              # 在跑吗？
+bark test <cmd>          # 测试任意命令的风险等级
+bark cache [clear]       # 它记住了什么
+bark log [clear]         # 它看到了什么
+bark stats               # 性能仪表板
+bark rules [edit]        # 自定义规则
+bark on / off            # 启用 / 禁用
+bark install-notifier    # 安装菜单栏通知助手 (macOS)
+bark tui                 # 实时终端大屏
+bark uninstall           # 完全卸载（包括通知助手）
 ```
 
 ## 自定义规则

@@ -107,11 +107,31 @@ Each layer short-circuits — if fast rules handle it, nothing else runs.
 
 🔴 **High** — Notification with sound + Claude Code asks for your confirmation. `rm -rf /`, force push, remote code execution.
 
+## Bark Notifier (macOS)
+
+Optional menu bar companion app. Install says yes when prompted, or run later:
+
+```bash
+bark install-notifier
+```
+
+**What you get:**
+
+- **Native notifications** with Allow / Deny / Skip buttons — decide from the notification, no need to switch to terminal
+- **Menu bar app** with tabbed dashboard:
+  - 📊 Dashboard — live stats, risk distribution
+  - 📋 Activity — filterable assessment log
+  - 📐 Rules — view/edit custom TOML rules
+  - ⚙️ Settings — hook toggle, light/dark/system theme, cache management
+- **Click notification** to jump to the terminal window
+- **Auto-fallback** — if you don't click within 10s, falls back to terminal confirmation
+- **Fully optional** — Bark works fine without it (falls back to `osascript` notifications)
+
 ## Cross-Platform
 
 | Platform | Install | Notifications | Daemon |
 |---|---|---|---|
-| **macOS** (Apple Silicon & Intel) | `curl \| bash` | Native (`osascript`) | Auto |
+| **macOS** (Apple Silicon & Intel) | `curl \| bash` | Native + BarkNotifier | Auto |
 | **Linux** (x86_64 & ARM64) | `curl \| bash` | `notify-send` | Auto |
 | **Windows** (x86_64) | `curl \| bash` | PowerShell toast | Standalone |
 
@@ -120,15 +140,16 @@ Pre-built binaries for all 5 platforms. Install script auto-detects. No Rust nee
 ## Commands
 
 ```bash
-bark status         # Is it running?
-bark test <cmd>     # Test any command's risk level
-bark cache [clear]  # What it remembers
-bark log [clear]    # What it's seen
-bark stats          # Performance dashboard
-bark rules [edit]   # Custom rules
-bark on / off       # Enable / disable
-bark tui            # Real-time terminal dashboard
-bark uninstall      # Remove completely
+bark status              # Is it running?
+bark test <cmd>          # Test any command's risk level
+bark cache [clear]       # What it remembers
+bark log [clear]         # What it's seen
+bark stats               # Performance dashboard
+bark rules [edit]        # Custom rules
+bark on / off            # Enable / disable
+bark install-notifier    # Install menu bar companion (macOS)
+bark tui                 # Real-time terminal dashboard
+bark uninstall           # Remove completely (including notifier)
 ```
 
 ## Custom Rules
