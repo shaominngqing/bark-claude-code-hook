@@ -176,14 +176,16 @@ impl AssessmentEngine {
             }
         }
 
-        // Layer 7: Fallback - medium risk for anything that reached here
+        // Layer 7: Fallback - high risk for anything that reached here.
+        // If we got this far, all analysis layers failed or returned nothing.
+        // Default to high (ask) to be safe — never auto-allow unknown operations.
         let reason = format!(
             "{}: {} - {}",
             self.locale.t("risk.unknown_op"),
             tool_name,
             self.locale.t("risk.needs_confirm"),
         );
-        Assessment::medium(reason, AssessmentSource::Fallback)
+        Assessment::high(reason, AssessmentSource::Fallback)
     }
 
     /// Check chain context for suspicious patterns that warrant higher risk.
@@ -341,7 +343,7 @@ impl AssessmentEngine {
             tool_name,
             self.locale.t("risk.needs_confirm"),
         );
-        Assessment::medium(reason, AssessmentSource::Fallback)
+        Assessment::high(reason, AssessmentSource::Fallback)
     }
 
     /// Get the locale.
@@ -431,9 +433,9 @@ mod tests {
         let engine = make_engine();
         let input = make_input("Bash", json!({"command": "some-unknown-cmd"}));
         let result = engine.assess(&input).await;
-        // Without AI or AST hits, should fall through to Fallback
+        // Without AI or AST hits, should fall through to Fallback (high = ask)
         assert_eq!(result.source, AssessmentSource::Fallback);
-        assert_eq!(result.level, RiskLevel::Medium);
+        assert_eq!(result.level, RiskLevel::High);
     }
 
     #[tokio::test]

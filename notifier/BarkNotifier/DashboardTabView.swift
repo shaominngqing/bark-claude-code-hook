@@ -123,14 +123,18 @@ class DashboardTabView: NSView {
 
     func refreshFromStore() {
         let store = BarkDataStore.shared
-        updateSessionStats(total: store.sessionAssessments, highRisk: store.sessionHighRisk,
+        let stats = store.aggregateStats
+
+        // Use historical totals from SQLite
+        let total = stats.total
+        let high = stats.byLevel["HIGH"] ?? 0
+        updateSessionStats(total: total, highRisk: high,
                            allowed: store.sessionAllowed, denied: store.sessionDenied)
         updateRunning(store.hookEnabled)
 
-        let stats = store.aggregateStats
         riskBar.update(low: stats.byLevel["LOW"] ?? 0,
                        med: stats.byLevel["MEDIUM"] ?? 0,
-                       high: stats.byLevel["HIGH"] ?? 0)
+                       high: high)
     }
 
     @objc private func hookStateChanged() {
