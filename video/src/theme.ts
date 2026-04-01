@@ -3,11 +3,11 @@
 
 export const COLORS = {
   // Primary gradient: matches install.sh _gradient() colors 39-44
-  gradientStart: '#38bdf8',   // sky-400 (visual approximation of ANSI 39 #00afff)
+  gradientStart: '#38bdf8',   // sky-400
   gradientMid: '#818cf8',     // indigo-400
   gradientEnd: '#c084fc',     // purple-400
 
-  // Script exact ANSI 256 gradient colors (39-44) used by _gradient()
+  // Script exact ANSI 256 gradient colors (39-44)
   ansi39: '#00afff',
   ansi40: '#00d7d7',
   ansi41: '#00d7ff',
@@ -15,11 +15,11 @@ export const COLORS = {
   ansi43: '#00ffd7',
   ansi44: '#00ffff',
 
-  // Script named colors: C1/C2/C3/C4
-  c1: '#00afff',    // 38;5;39
-  c2: '#00d7ff',    // 38;5;45
-  c3: '#00ffff',    // 38;5;51
-  c4: '#5fffff',    // 38;5;87
+  // Script named colors
+  c1: '#00afff',
+  c2: '#00d7ff',
+  c3: '#00ffff',
+  c4: '#5fffff',
 
   // Terminal
   termBg: '#0d1117',
@@ -29,28 +29,24 @@ export const COLORS = {
   termDim: '#7d8590',
   termPrompt: '#58a6ff',
 
-  // Risk levels (match script: GREEN/YELLOW/RED)
-  low: '#3fb950',          // ANSI green
+  // Risk levels
+  low: '#3fb950',
   lowBg: 'rgba(63, 185, 80, 0.15)',
-  medium: '#d29922',       // ANSI yellow (bold)
+  medium: '#d29922',
   mediumBg: 'rgba(210, 153, 34, 0.15)',
-  high: '#f85149',         // ANSI red
+  high: '#f85149',
   highBg: 'rgba(248, 81, 73, 0.15)',
 
-  // Script extra colors
-  accent: '#ff87ff',       // ANSI 213 — ACCENT in script
-  orange: '#ff8700',       // ANSI 208 — ORANGE in script (AI source)
-  purple: '#af87ff',       // ANSI 141 — PURPLE in script (RULE source)
-
+  // Extra
+  accent: '#ff87ff',
+  orange: '#ff8700',
+  purple: '#af87ff',
   white: '#ffffff',
   black: '#000000',
-
-  // macOS notification
   notifBg: '#2d2d2d',
   notifBorder: '#444',
 } as const;
 
-// The 6-step gradient cycle used by _gradient() / _gradient_line() in install.sh
 export const GRADIENT_CYCLE = [
   COLORS.ansi39, COLORS.ansi40, COLORS.ansi41,
   COLORS.ansi42, COLORS.ansi43, COLORS.ansi44,
@@ -59,54 +55,38 @@ export const GRADIENT_CYCLE = [
 export const GRADIENT_CSS = `linear-gradient(135deg, ${COLORS.gradientStart}, ${COLORS.gradientMid}, ${COLORS.gradientEnd})`;
 
 // Video settings
-export const FPS = 30;
+export const FPS = 60;
 export const WIDTH = 1920;
 export const HEIGHT = 1080;
 
 // Scene durations in seconds
 export const SCENE_DURATIONS = {
-  hook: 6,           // pain point — switching windows, pressing y y y
-  intercept: 3,      // transition — "what if safe ops auto-allow?"
-  opening: 3,        // Banner + version
-  features: 6,       // 6 features × 1s each, full-screen
-  install: 6,        // platform detect → download binary → completion
-  workflow: 28,      // read-only → AI assess → cache hit → high risk
-  closing: 3,        // GitHub CTA + star
+  intro: 6,        // logo + pain point
+  recording: 85,   // full demo recording (no cuts)
+  closing: 8,      // CTA + GitHub
 } as const;
 
-export const TOTAL_DURATION = Object.values(SCENE_DURATIONS).reduce((a, b) => a + b, 0);
+export const TOTAL_DURATION = Object.values(SCENE_DURATIONS).reduce((a, b) => a + b, 0); // 100s
 
-// Block pixel art ASCII — matches install.sh banner
-export const BARK_ASCII = [
-  ' ███████████                      █████',
-  '░░███░░░░░███                    ░░███',
-  ' ░███    ░███  ██████   ████████  ░███ █████',
-  ' ░██████████  ░░░░░███ ░░███░░███ ░███░░███',
-  ' ░███░░░░░███  ███████  ░███ ░░░  ░██████░',
-  ' ░███    ░███ ███░░███  ░███      ░███░░███',
-  ' ███████████ ░░████████ █████     ████ █████',
-  '░░░░░░░░░░░   ░░░░░░░░ ░░░░░     ░░░░ ░░░░░',
-];
+// ASCII art (kept for potential use)
+export const BARK_ASCII = `\
+ ███████████                      █████
+░░███░░░░░███                    ░░███
+ ░███    ░███  ██████   ████████  ░███ █████
+ ░██████████  ░░░░░███ ░░███░░███ ░███░░███
+ ░███░░░░░███  ███████  ░███ ░░░  ░██████░
+ ░███    ░███ ███░░███  ░███      ░███░░███
+ ███████████ ░░████████ █████     ████ █████
+░░░░░░░░░░░   ░░░░░░░░ ░░░░░     ░░░░ ░░░░░`;
 
-// Small version ASCII art
-export const BARK_ASCII_SMALL = [
-  ' ___           _',
-  '| _ ) __ _ _ _| |__',
-  '| _ \\/ _` | \'_| / /',
-  '|___/\\__,_|_| |_\\_\\',
-];
+// Typography
+export const FONT = {
+  mono: "'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Menlo, Consolas, monospace",
+  sans: "-apple-system, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif",
+} as const;
 
-// Font
-export const FONT_MONO = "'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Menlo, Consolas, monospace";
-export const FONT_SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
-
-// Shadow & glow tokens
-export const SHADOWS = {
-  termWindow: '0 25px 80px rgba(0,0,0,0.55), 0 10px 30px rgba(0,0,0,0.3)',
-  termWindowHover: '0 30px 90px rgba(0,0,0,0.6), 0 0 40px rgba(56,189,248,0.08)',
-  notification: '0 12px 40px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.06)',
-  glowLow: `0 0 20px rgba(63, 185, 80, 0.4), 0 0 60px rgba(63, 185, 80, 0.1)`,
-  glowMedium: `0 0 20px rgba(210, 153, 34, 0.4), 0 0 60px rgba(210, 153, 34, 0.1)`,
-  glowHigh: `0 0 20px rgba(248, 81, 73, 0.5), 0 0 80px rgba(248, 81, 73, 0.15)`,
-  glowBlue: `0 0 30px rgba(56, 189, 248, 0.3), 0 0 80px rgba(56, 189, 248, 0.1)`,
+// Shadows
+export const SHADOW = {
+  terminal: '0 25px 80px rgba(0,0,0,0.55)',
+  glow: (color: string) => `0 0 40px ${color}40, 0 0 80px ${color}20`,
 } as const;

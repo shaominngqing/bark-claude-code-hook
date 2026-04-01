@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <video src="https://github.com/user-attachments/assets/0be3cb37-652c-4c12-b488-0e76dd1b848f" width="800" controls autoplay muted loop></video>
+  <video src="https://github.com/user-attachments/assets/7dd16173-f8f6-4d28-a778-1bcd3d9d072b" width="800" controls autoplay muted loop></video>
 </p>
 
 ## The Problem
