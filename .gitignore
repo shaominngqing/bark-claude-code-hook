@@ -21,3 +21,5 @@ video/out/
 *.db-shm
 bark.log
 notifier/build/
+video/src/components/ffmpeg2pass*
+video/out/
