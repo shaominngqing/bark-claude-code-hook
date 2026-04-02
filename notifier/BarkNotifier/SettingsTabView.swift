@@ -113,7 +113,8 @@ class SettingsTabView: NSView {
                                        frame: NSRect(x: P, y: y + 8, width: 80, height: 18))
         addSubview(versionTitleLabel)
 
-        versionValueLabel = makeLabel("2.0.2", font: BarkTheme.body, color: BarkTheme.secondaryText,
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+        versionValueLabel = makeLabel(appVersion, font: BarkTheme.body, color: BarkTheme.secondaryText,
                                        frame: NSRect(x: W - P - 100, y: y + 8, width: 100, height: 18))
         versionValueLabel.alignment = .right
         addSubview(versionValueLabel)
