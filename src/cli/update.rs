@@ -25,9 +25,16 @@ pub fn run() {
         }
     };
 
-    println!("  {} {} → {}", style::dim("current:"), current_version, latest);
+    let notifier_version = get_notifier_version();
+    println!("  {} bark {} → {}", style::dim("current:"), current_version, latest);
+    if let Some(ref nv) = notifier_version {
+        println!("  {} notifier {} → {}", style::dim("current:"), nv, latest);
+    }
 
-    if latest == current_version {
+    let bark_up_to_date = latest == current_version;
+    let notifier_up_to_date = notifier_version.as_deref() == Some(&latest);
+
+    if bark_up_to_date && (notifier_version.is_none() || notifier_up_to_date) {
         style::print_ok(locale.t("update.already_latest"));
         println!();
         return;
@@ -40,105 +47,119 @@ pub fn run() {
         return;
     };
 
-    // Step 3: Download new binary
-    style::print_step(locale.t("update.download"));
-    let exe_suffix = if cfg!(target_os = "windows") { ".exe" } else { "" };
-    let url = format!(
-        "https://github.com/{}/releases/download/v{}/bark-{}{}",
-        REPO, latest, target, exe_suffix
-    );
-
-    let tmp_dir = std::env::temp_dir().join("bark-update");
-    std::fs::create_dir_all(&tmp_dir).ok();
-    let tmp_bin = tmp_dir.join(format!("bark{}", exe_suffix));
-
-    let download_ok = Command::new("curl")
-        .args(["-fsSL", &url, "-o", &tmp_bin.to_string_lossy()])
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false);
-
-    if !download_ok || !tmp_bin.exists() || std::fs::metadata(&tmp_bin).map(|m| m.len()).unwrap_or(0) == 0 {
-        style::print_err(locale.t("update.download_failed"));
-        std::fs::remove_dir_all(&tmp_dir).ok();
-        return;
-    }
-
-    // Step 4: Replace binary
-    style::print_step(locale.t("update.install"));
-
-    // Find current binary path
-    let current_exe = std::env::current_exe().ok();
-    let install_path = current_exe
-        .as_ref()
-        .filter(|p| !p.to_string_lossy().contains("target/"))
-        .cloned()
-        .unwrap_or_else(|| {
-            // Fallback: find bark in common paths
-            for dir in &["/opt/homebrew/bin", "/usr/local/bin"] {
-                let p = std::path::PathBuf::from(dir).join("bark");
-                if p.exists() { return p; }
-            }
-            std::path::PathBuf::from("/usr/local/bin/bark")
-        });
-
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&tmp_bin, std::fs::Permissions::from_mode(0o755)).ok();
-    }
-
-    let replace_ok = if std::fs::copy(&tmp_bin, &install_path).is_ok() {
-        true
+    // Step 3: Update bark binary
+    if bark_up_to_date {
+        style::print_ok(&format!("bark v{} (up to date)", current_version));
     } else {
-        // Try with sudo
-        Command::new("sudo")
-            .args(["cp", &tmp_bin.to_string_lossy(), &install_path.to_string_lossy()])
+        style::print_step(locale.t("update.download"));
+        let exe_suffix = if cfg!(target_os = "windows") { ".exe" } else { "" };
+        let url = format!(
+            "https://github.com/{}/releases/download/v{}/bark-{}{}",
+            REPO, latest, target, exe_suffix
+        );
+
+        let tmp_dir = std::env::temp_dir().join("bark-update");
+        std::fs::create_dir_all(&tmp_dir).ok();
+        let tmp_bin = tmp_dir.join(format!("bark{}", exe_suffix));
+
+        let download_ok = Command::new("curl")
+            .args(["-fsSL", &url, "-o", &tmp_bin.to_string_lossy()])
             .status()
             .map(|s| s.success())
-            .unwrap_or(false)
-    };
+            .unwrap_or(false);
 
-    if !replace_ok {
-        style::print_err(&format!("Failed to replace {}", install_path.display()));
+        if !download_ok || !tmp_bin.exists() || std::fs::metadata(&tmp_bin).map(|m| m.len()).unwrap_or(0) == 0 {
+            style::print_err(locale.t("update.download_failed"));
+            std::fs::remove_dir_all(&tmp_dir).ok();
+            return;
+        }
+
+        // Step 4: Replace binary
+        style::print_step(locale.t("update.install"));
+
+        let current_exe = std::env::current_exe().ok();
+        let install_path = current_exe
+            .as_ref()
+            .filter(|p| !p.to_string_lossy().contains("target/"))
+            .cloned()
+            .unwrap_or_else(|| {
+                for dir in &["/opt/homebrew/bin", "/usr/local/bin"] {
+                    let p = std::path::PathBuf::from(dir).join("bark");
+                    if p.exists() { return p; }
+                }
+                std::path::PathBuf::from("/usr/local/bin/bark")
+            });
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&tmp_bin, std::fs::Permissions::from_mode(0o755)).ok();
+        }
+
+        let replace_ok = if std::fs::copy(&tmp_bin, &install_path).is_ok() {
+            true
+        } else {
+            Command::new("sudo")
+                .args(["cp", &tmp_bin.to_string_lossy(), &install_path.to_string_lossy()])
+                .status()
+                .map(|s| s.success())
+                .unwrap_or(false)
+        };
+
+        if !replace_ok {
+            style::print_err(&format!("Failed to replace {}", install_path.display()));
+            std::fs::remove_dir_all(&tmp_dir).ok();
+            return;
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            Command::new("xattr")
+                .args(["-cr", &install_path.to_string_lossy()])
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .status()
+                .ok();
+            Command::new("codesign")
+                .args(["--force", "--sign", "-", &install_path.to_string_lossy()])
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .status()
+                .ok();
+        }
+
         std::fs::remove_dir_all(&tmp_dir).ok();
-        return;
+        style::print_ok(&format!("bark {} → {}", current_version, latest));
     }
 
-    // Clear quarantine and re-sign (macOS)
-    #[cfg(target_os = "macos")]
-    {
-        Command::new("xattr")
-            .args(["-cr", &install_path.to_string_lossy()])
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .status()
-            .ok();
-        Command::new("codesign")
-            .args(["--force", "--sign", "-", &install_path.to_string_lossy()])
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .status()
-            .ok();
-    }
-
-    style::print_ok(&format!("bark v{} → {}", current_version, latest));
-
-    // Step 5: Update BarkNotifier if installed (macOS)
+    // Step 5: Update BarkNotifier if installed and outdated (macOS)
     #[cfg(target_os = "macos")]
     {
         let app_path = config::notifier_app_path();
-        if app_path.exists() {
+        if app_path.exists() && !notifier_up_to_date {
             style::print_step(locale.t("update.notifier"));
             update_notifier(&app_path, &latest, &locale);
         }
     }
 
-    std::fs::remove_dir_all(&tmp_dir).ok();
-
     println!();
     style::print_ok(&format!("{} v{}", style::bold(locale.t("update.complete")), latest));
     println!();
+}
+
+/// Read notifier version from its Info.plist (macOS only).
+fn get_notifier_version() -> Option<String> {
+    let app_path = config::notifier_app_path();
+    let plist_path = app_path.join("Contents").join("Info.plist");
+    let content = std::fs::read_to_string(&plist_path).ok()?;
+    // Find CFBundleShortVersionString value
+    let key = "CFBundleShortVersionString";
+    let idx = content.find(key)?;
+    let rest = &content[idx..];
+    let start = rest.find("<string>")? + 8;
+    let rest = &rest[start..];
+    let end = rest.find("</string>")?;
+    Some(rest[..end].to_string())
 }
 
 fn fetch_latest_version() -> Option<String> {
