@@ -132,9 +132,15 @@ pub fn get(key: &str) -> &'static str {
         "uninstall.done" => "Bark \u{5df2}\u{5b8c}\u{5168}\u{5378}\u{8f7d}\u{3002}",
 
         // --- Update ---
-        "update.current" => "Bark v{version}",
-        "update.not_impl" => "Rust \u{7248}\u{672c}\u{5c1a}\u{672a}\u{5b9e}\u{73b0}\u{66f4}\u{65b0}\u{68c0}\u{67e5}\u{3002}",
-        "update.manual" => "\u{8bf7}\u{4ece}\u{6e90}\u{7801}\u{91cd}\u{65b0}\u{6784}\u{5efa}\u{6216}\u{4e0b}\u{8f7d}\u{6700}\u{65b0}\u{53d1}\u{5e03}\u{3002}",
+        "update.title" => "\u{66f4}\u{65b0} Bark",
+        "update.check" => "\u{68c0}\u{67e5}\u{6700}\u{65b0}\u{7248}\u{672c}",
+        "update.fetch_failed" => "\u{65e0}\u{6cd5}\u{83b7}\u{53d6}\u{6700}\u{65b0}\u{7248}\u{672c}",
+        "update.already_latest" => "\u{5df2}\u{662f}\u{6700}\u{65b0}\u{7248}\u{672c}\u{3002}",
+        "update.download" => "\u{4e0b}\u{8f7d}\u{65b0}\u{7248}\u{672c}",
+        "update.download_failed" => "\u{4e0b}\u{8f7d}\u{5931}\u{8d25}",
+        "update.install" => "\u{5b89}\u{88c5}",
+        "update.notifier" => "\u{66f4}\u{65b0} BarkNotifier",
+        "update.complete" => "\u{5df2}\u{66f4}\u{65b0}\u{5230}",
 
         // --- Notify ---
         "notify.auto_allowed" => "\u{5df2}\u{81ea}\u{52a8}\u{653e}\u{884c}",

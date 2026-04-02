@@ -132,9 +132,15 @@ pub fn get(key: &str) -> &'static str {
         "uninstall.done" => "Bark has been fully uninstalled.",
 
         // --- Update ---
-        "update.current" => "Bark v{version}",
-        "update.not_impl" => "Update check is not yet implemented in the Rust version.",
-        "update.manual" => "To update manually, rebuild from source or download the latest release.",
+        "update.title" => "Update Bark",
+        "update.check" => "Check latest version",
+        "update.fetch_failed" => "Failed to fetch latest version from GitHub",
+        "update.already_latest" => "Already on the latest version.",
+        "update.download" => "Download new version",
+        "update.download_failed" => "Download failed",
+        "update.install" => "Install",
+        "update.notifier" => "Update BarkNotifier",
+        "update.complete" => "Updated to",
 
         // --- Notify ---
         "notify.auto_allowed" => "Auto-allowed",
