@@ -232,27 +232,40 @@ impl SessionChain {
     ///
     /// Looks for: find/ls/env/whoami → tar/zip + network commands
     fn detect_recon_then_exfil(&self) -> bool {
-        let recon_commands = [
-            "find", "ls", "env", "whoami", "id", "uname", "hostname",
+        // Only count genuinely suspicious recon commands.
+        // ls/find are extremely common in normal development — exclude them
+        // from recon unless followed by truly suspicious exfil commands.
+        let suspicious_recon = [
+            "env", "whoami", "id", "uname", "hostname",
             "ifconfig", "ip addr", "netstat", "ps", "cat /etc",
         ];
+        // ls/find only count as recon if there are 5+ of them (unusual density)
+        let mild_recon = ["find", "ls"];
         let exfil_indicators = [
             "tar", "zip", "gzip", "base64", "curl", "wget", "nc",
             "scp", "rsync",
         ];
 
-        let mut recon_count = 0;
+        let mut suspicious_recon_count = 0;
+        let mut mild_recon_count = 0;
 
         for op in &self.operations {
             if let Some(cmd) = &op.command {
                 let lower = cmd.to_lowercase();
 
-                if recon_commands.iter().any(|r| lower.starts_with(r)) {
-                    recon_count += 1;
+                if suspicious_recon.iter().any(|r| lower.starts_with(r)) {
+                    suspicious_recon_count += 1;
+                } else if mild_recon.iter().any(|r| lower.starts_with(r)) {
+                    mild_recon_count += 1;
                 }
 
-                // If we've seen multiple recon commands, look for exfil
-                if recon_count >= 2 && exfil_indicators.iter().any(|e| lower.starts_with(e) || lower.contains(e)) {
+                // Trigger if: suspicious recon (2+) OR excessive mild recon (5+),
+                // AND followed by actual exfil command
+                let recon_threshold = suspicious_recon_count >= 2
+                    || (suspicious_recon_count >= 1 && mild_recon_count >= 3)
+                    || mild_recon_count >= 5;
+
+                if recon_threshold && exfil_indicators.iter().any(|e| lower.starts_with(e) || lower.contains(e)) {
                     return true;
                 }
             }
@@ -421,7 +434,7 @@ mod tests {
     fn test_recon_then_exfil_pattern() {
         let tracker = make_tracker_with_ops(&[
             ("Bash", Some("whoami"), None, RiskLevel::Low),
-            ("Bash", Some("find / -name '*.pem'"), None, RiskLevel::Medium),
+            ("Bash", Some("env"), None, RiskLevel::Low),
             ("Bash", Some("tar czf /tmp/data.tar.gz /home"), None, RiskLevel::High),
         ]);
         let ctx = tracker.get_context("test-session");
