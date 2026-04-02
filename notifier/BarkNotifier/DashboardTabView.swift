@@ -39,7 +39,8 @@ class DashboardTabView: NSView {
                                 frame: NSRect(x: P + 14, y: y + 6, width: 80, height: 16))
         addSubview(statusLabel)
 
-        versionLabel = makeLabel("v2.0.2", font: BarkTheme.small, color: BarkTheme.dimText,
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        versionLabel = makeLabel("v\(appVersion)", font: BarkTheme.small, color: BarkTheme.dimText,
                                   frame: NSRect(x: W - P - 50, y: y + 6, width: 50, height: 16))
         versionLabel.alignment = .right
         addSubview(versionLabel)
