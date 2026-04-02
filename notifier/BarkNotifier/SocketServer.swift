@@ -181,7 +181,7 @@ class SocketServer: NSObject {
             lock.lock()
             autoSkipTimers[id] = autoSkip
             lock.unlock()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 10.0, execute: autoSkip)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0, execute: autoSkip)
 
         default:
             sendJSON(fd: fd, ["type": "error", "message": "unknown type: \(msgType)"])

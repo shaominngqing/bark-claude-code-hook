@@ -14,7 +14,7 @@ use super::helper_protocol::{DecisionAction, NotifyRequest, NotifyResponse};
 ///
 /// Must be well under the hook timeout (30s). Assessment takes ~2-5s,
 /// so 15s leaves a comfortable buffer.
-const CONFIRM_TIMEOUT: Duration = Duration::from_secs(15);
+const CONFIRM_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Socket path for the notification helper app.
 pub fn notifier_socket_path() -> PathBuf {
